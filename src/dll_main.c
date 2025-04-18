@@ -1,6 +1,12 @@
-#include "venom/venom.h"
+/* SPDX-License-Identifier: BSD-3-Clause */
+/* Copyright (c) 2025 - Present Romain Augier */
+/* All rights reserved. */
 
-#include <cstdio>
+#include "venom/lexer.h"
+
+#include "libromano/logger.h"
+
+#include <stdio.h>
 
 #if defined(VENOM_WIN)
 #include <Windows.h>
@@ -8,7 +14,7 @@
 
 /* 
    In this source file we execute all functions that need to be executed at runtime to check and
-   set some global variables (for simd vectorization, cpu frequency for profiling...) 
+   set some global variables
 
    lib_entry is executed on dlopen / LoadLibrary
    lib_exit is executed on dlclose / CloseLibrary
@@ -17,15 +23,19 @@
 void VENOM_LIB_ENTRY lib_entry(void)
 {
 #if VENOM_DEBUG
-    std::printf("venom entry\n");
+    printf("libvenom entry\n");
 #endif // VENOM_DEBUG
+    logger_init();
+
+    lexer_maps_init();
 }
 
 void VENOM_LIB_EXIT lib_exit(void)
 {
 #if VENOM_DEBUG
-    std::printf("venom exit\n");
+    printf("libvenom exit\n");
 #endif // VENOM_DEBUG
+    lexer_maps_release();
 }
 
 #if defined(VENOM_WIN)

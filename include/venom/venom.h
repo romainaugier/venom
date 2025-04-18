@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: BSD-3-Clause 
-// Copyright (c) 2025 - Present Romain Augier
-// All rights reserved. 
+/* SPDX-License-Identifier: BSD-3-Clause */
+/* Copyright (c) 2025 - Present Romain Augier */
+/* All rights reserved. */
 
 #pragma once
 
@@ -158,12 +158,12 @@
 #define VENOM_CPP_END
 #endif /* defined(__cplusplus) */
 
-#define VENOM_ATEXIT_REGISTER(func, exit)                            \
-        int res_##func = atexit(func);                                              \
-        if(res_##func != 0)                                                         \
-        {                                                                           \
-            fprintf(stderr, "Cannot register function \""#func"\" in atexit");      \
-            if(exit) return exit(1);                                                \
+#define VENOM_ATEXIT_REGISTER(__func__, __exit__)                                  \
+        int res_##__func__ = atexit(__func__);                                     \
+        if(res_##__func__ != 0)                                                    \
+        {                                                                          \
+            fprintf(stderr, "Cannot register function \""#__func__"\" in atexit"); \
+            if(__exit__) exit(1);                                                  \
         }                                                                           
 
 #endif /* !defined(__VENOM) */

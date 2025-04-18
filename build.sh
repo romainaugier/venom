@@ -9,6 +9,7 @@ RUNTESTS=0
 REMOVEOLDDIR=0
 EXPORTCOMPILECOMMANDS=0
 VERSION="0.0.0"
+INSTALL=0
 INSTALLDIR="$PWD/install"
 
 # Little function to parse command line arguments
@@ -21,6 +22,8 @@ parse_args()
     [ "$1" == "--tests" ] && RUNTESTS=1
 
     [ "$1" == "--clean" ] && REMOVEOLDDIR=1
+    
+    [ "$1" == "--install" ] && INSTALL=1
 
     [ "$1" == "--export-compile-commands" ] && EXPORTCOMPILECOMMANDS=1
 
@@ -108,7 +111,11 @@ if [[ $RUNTESTS -eq 1 ]]; then
     fi
 fi
 
-cmake --install . --config %BUILDTYPE% --prefix $INSTALLDIR
+if [[ $INSTALL -eq 1 ]]; then
+    log_info "Installing venom to directory: $INSTALLDIR"
+
+    cmake --install . --config $BUILDTYPE --prefix $INSTALLDIR
+fi
 
 if [[ $? -ne 0 ]]; then
     log_error "Error during CMake installation"

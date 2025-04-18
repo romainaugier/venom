@@ -1,0 +1,57 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
+/* Copyright (c) 2025 - Present Romain Augier */
+/* All rights reserved. */
+
+#include "venom/lexer.h"
+
+#include "libromano/filesystem.h"
+#include "libromano/logger.h"
+#include "libromano/string.h"
+
+int main(int argc, char** argv)
+{
+    VENOM_ATEXIT_REGISTER(logger_release, false);
+
+    logger_init();
+
+    logger_log_info("Starting lexer test");
+
+    String file_path = string_newf("%s/test1.py", TESTS_DATA_DIR);
+
+    FileContent content; 
+    
+    if(!fs_file_content_new((char*)file_path, &content))
+    {
+        logger_log_error("Cannot content of file: %s", file_path);
+        string_free(file_path);
+        return 1;
+    }
+
+    string_free(file_path);
+
+    printf("%.*s\n", (int)content.content_length, content.content);
+
+    Vector* tokens = vector_new(128, sizeof(PyToken));
+
+    if(!lexer_lex(content.content, tokens))
+    {
+        fs_file_content_free(&content);
+        vector_free(tokens);
+        logger_log_error("Error caught while lexing");
+        return 1;
+    }
+
+    for(size_t i = 0; i < vector_size(tokens); i++)
+    {
+        lexer_token_debug((PyToken*)vector_at(tokens, i));
+    }
+
+    fs_file_content_free(&content);
+
+    vector_free(tokens);
+
+    logger_log_info("Finished lexer test");
+    
+    return 0;
+}
+

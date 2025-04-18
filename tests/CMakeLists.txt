@@ -12,7 +12,8 @@ foreach(test_file ${TEST_FILES})
 
     add_executable(${TESTNAME} ${test_file})
     set_target_options(${TESTNAME})
-    target_link_libraries(${TESTNAME} ${PROJECT_NAME})
+    target_compile_definitions(${TESTNAME} PRIVATE TESTS_DATA_DIR=${TESTS_DATA_DIR})
+    target_link_libraries(${TESTNAME} ${LIB_NAME})
     
     add_test(${TESTNAME} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TESTNAME})
 endforeach()
@@ -34,7 +35,7 @@ if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     )
 
     set(PDB_COPY_COMMAND
-        ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE_DIR:${PROJECT_NAME}>/$<TARGET_FILE_BASE_NAME:${PROJECT_NAME}>.pdb $<TARGET_FILE_DIR:${TESTNAME}>)
+        ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE_DIR:${LIBNAME}>/$<TARGET_FILE_BASE_NAME:${PROJECT_NAME}>.pdb $<TARGET_FILE_DIR:${TESTNAME}>)
 
     add_custom_command(
         TARGET ${TESTNAME} POST_BUILD
@@ -48,5 +49,5 @@ endif()
 add_custom_command(
     TARGET ${TESTNAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-    $<TARGET_FILE:${PROJECT_NAME}> $<TARGET_FILE_DIR:${TESTNAME}>
+    $<TARGET_FILE:${LIB_NAME}> $<TARGET_FILE_DIR:${TESTNAME}>
 )

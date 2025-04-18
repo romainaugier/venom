@@ -1,0 +1,3 @@
+[submodule "libromano"]
+	path = libromano
+	url = https://github.com/romainaugier/libromano
