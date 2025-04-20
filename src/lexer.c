@@ -324,7 +324,7 @@ HashMap* g_keywords_map = NULL;
 HashMap* g_delimiters_map = NULL;
 HashMap* g_operators_map = NULL;
 
-void lexer_maps_init() 
+void v_lexer_maps_init() 
 {
     logger_log_debug("Initialiazing Lexer maps");
 
@@ -333,75 +333,75 @@ void lexer_maps_init()
         g_keywords_map = hashmap_new(256);
     }
 
-    uint32_t value = (uint32_t)PyKeyword_False; 
+    uint32_t value = (uint32_t)VKeyword_False; 
     hashmap_insert(g_keywords_map, "False", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Await; 
+    value = (uint32_t)VKeyword_Await; 
     hashmap_insert(g_keywords_map, "await", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Else; 
+    value = (uint32_t)VKeyword_Else; 
     hashmap_insert(g_keywords_map, "else", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Import; 
+    value = (uint32_t)VKeyword_Import; 
     hashmap_insert(g_keywords_map, "import", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Pass; 
+    value = (uint32_t)VKeyword_Pass; 
     hashmap_insert(g_keywords_map, "pass", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_None; 
+    value = (uint32_t)VKeyword_None; 
     hashmap_insert(g_keywords_map, "None", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Break; 
+    value = (uint32_t)VKeyword_Break; 
     hashmap_insert(g_keywords_map, "break", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Except; 
+    value = (uint32_t)VKeyword_Except; 
     hashmap_insert(g_keywords_map, "except", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_In; 
+    value = (uint32_t)VKeyword_In; 
     hashmap_insert(g_keywords_map, "in", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Raise; 
+    value = (uint32_t)VKeyword_Raise; 
     hashmap_insert(g_keywords_map, "raise", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_True; 
+    value = (uint32_t)VKeyword_True; 
     hashmap_insert(g_keywords_map, "True", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Class; 
+    value = (uint32_t)VKeyword_Class; 
     hashmap_insert(g_keywords_map, "class", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Finally; 
+    value = (uint32_t)VKeyword_Finally; 
     hashmap_insert(g_keywords_map, "finally", 7, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Is; 
+    value = (uint32_t)VKeyword_Is; 
     hashmap_insert(g_keywords_map, "is", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Return; 
+    value = (uint32_t)VKeyword_Return; 
     hashmap_insert(g_keywords_map, "return", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_And; 
+    value = (uint32_t)VKeyword_And; 
     hashmap_insert(g_keywords_map, "and", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Continue; 
+    value = (uint32_t)VKeyword_Continue; 
     hashmap_insert(g_keywords_map, "continue", 8, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_For; 
+    value = (uint32_t)VKeyword_For; 
     hashmap_insert(g_keywords_map, "for", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Lambda; 
+    value = (uint32_t)VKeyword_Lambda; 
     hashmap_insert(g_keywords_map, "lambda", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Try; 
+    value = (uint32_t)VKeyword_Try; 
     hashmap_insert(g_keywords_map, "try", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_As; 
+    value = (uint32_t)VKeyword_As; 
     hashmap_insert(g_keywords_map, "as", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Def; 
+    value = (uint32_t)VKeyword_Def; 
     hashmap_insert(g_keywords_map, "def", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_From; 
+    value = (uint32_t)VKeyword_From; 
     hashmap_insert(g_keywords_map, "from", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Nonlocal; 
+    value = (uint32_t)VKeyword_Nonlocal; 
     hashmap_insert(g_keywords_map, "nonlocal", 8, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_While; 
+    value = (uint32_t)VKeyword_While; 
     hashmap_insert(g_keywords_map, "while", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Assert; 
+    value = (uint32_t)VKeyword_Assert; 
     hashmap_insert(g_keywords_map, "assert", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Del; 
+    value = (uint32_t)VKeyword_Del; 
     hashmap_insert(g_keywords_map, "del", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Global; 
+    value = (uint32_t)VKeyword_Global; 
     hashmap_insert(g_keywords_map, "global", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Not; 
+    value = (uint32_t)VKeyword_Not; 
     hashmap_insert(g_keywords_map, "not", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_With; 
+    value = (uint32_t)VKeyword_With; 
     hashmap_insert(g_keywords_map, "with", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Async; 
+    value = (uint32_t)VKeyword_Async; 
     hashmap_insert(g_keywords_map, "async", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Elif; 
+    value = (uint32_t)VKeyword_Elif; 
     hashmap_insert(g_keywords_map, "elif", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_If; 
+    value = (uint32_t)VKeyword_If; 
     hashmap_insert(g_keywords_map, "if", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Or; 
+    value = (uint32_t)VKeyword_Or; 
     hashmap_insert(g_keywords_map, "or", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyKeyword_Yield; 
+    value = (uint32_t)VKeyword_Yield; 
     hashmap_insert(g_keywords_map, "yield", 5, &value, sizeof(uint32_t));
 
     if(g_delimiters_map == NULL)
@@ -409,29 +409,29 @@ void lexer_maps_init()
         g_delimiters_map = hashmap_new(256);
     }
 
-    value = PyDelimiter_LParen; 
+    value = VDelimiter_LParen; 
     hashmap_insert(g_delimiters_map, "(", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_RParen; 
+    value = VDelimiter_RParen; 
     hashmap_insert(g_delimiters_map, ")", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_LBracket; 
+    value = VDelimiter_LBracket; 
     hashmap_insert(g_delimiters_map, "[", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_RBracket; 
+    value = VDelimiter_RBracket; 
     hashmap_insert(g_delimiters_map, "]", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_LBrace; 
+    value = VDelimiter_LBrace; 
     hashmap_insert(g_delimiters_map, "{", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_RBrace; 
+    value = VDelimiter_RBrace; 
     hashmap_insert(g_delimiters_map, "}", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_Comma; 
+    value = VDelimiter_Comma; 
     hashmap_insert(g_delimiters_map, ",", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_Colon; 
+    value = VDelimiter_Colon; 
     hashmap_insert(g_delimiters_map, ":", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_Dot; 
+    value = VDelimiter_Dot; 
     hashmap_insert(g_delimiters_map, ".", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_SemiColon; 
+    value = VDelimiter_SemiColon; 
     hashmap_insert(g_delimiters_map, ";", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_At; 
+    value = VDelimiter_At; 
     hashmap_insert(g_delimiters_map, "@", 1, &value, sizeof(uint32_t));
-    value = PyDelimiter_RightArrow; 
+    value = VDelimiter_RightArrow; 
     hashmap_insert(g_delimiters_map, "->", 2, &value, sizeof(uint32_t));
 
     if(g_operators_map == NULL)
@@ -439,87 +439,87 @@ void lexer_maps_init()
         g_operators_map = hashmap_new(256);
     }
 
-    value = (uint32_t)PyOperator_Addition; 
+    value = (uint32_t)VOperator_Addition; 
     hashmap_insert(g_operators_map, "+", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_Subtraction; 
+    value = (uint32_t)VOperator_Subtraction; 
     hashmap_insert(g_operators_map, "-", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_Multiplication; 
+    value = (uint32_t)VOperator_Multiplication; 
     hashmap_insert(g_operators_map, "*", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_Division; 
+    value = (uint32_t)VOperator_Division; 
     hashmap_insert(g_operators_map, "/", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_Modulus; 
+    value = (uint32_t)VOperator_Modulus; 
     hashmap_insert(g_operators_map, "%", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_Exponentiation; 
+    value = (uint32_t)VOperator_Exponentiation; 
     hashmap_insert(g_operators_map, "**", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_Floor_division; 
+    value = (uint32_t)VOperator_Floor_division; 
     hashmap_insert(g_operators_map, "//", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_Assign; 
+    value = (uint32_t)VOperator_Assign; 
     hashmap_insert(g_operators_map, "=", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_AdditionAssign; 
+    value = (uint32_t)VOperator_AdditionAssign; 
     hashmap_insert(g_operators_map, "+=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_SubtractionAssign; 
+    value = (uint32_t)VOperator_SubtractionAssign; 
     hashmap_insert(g_operators_map, "-=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_MultiplicationAssign; 
+    value = (uint32_t)VOperator_MultiplicationAssign; 
     hashmap_insert(g_operators_map, "*=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_DivisionAssign; 
+    value = (uint32_t)VOperator_DivisionAssign; 
     hashmap_insert(g_operators_map, "/=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_ModulusAssign; 
+    value = (uint32_t)VOperator_ModulusAssign; 
     hashmap_insert(g_operators_map, "%=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_FloorDivisionAssign; 
+    value = (uint32_t)VOperator_FloorDivisionAssign; 
     hashmap_insert(g_operators_map, "//=", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_ExponentiationAssign; 
+    value = (uint32_t)VOperator_ExponentiationAssign; 
     hashmap_insert(g_operators_map, "**=", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseAndAssign; 
+    value = (uint32_t)VOperator_BitwiseAndAssign; 
     hashmap_insert(g_operators_map, "&=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseOrAssign; 
+    value = (uint32_t)VOperator_BitwiseOrAssign; 
     hashmap_insert(g_operators_map, "|=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseXorAssign; 
+    value = (uint32_t)VOperator_BitwiseXorAssign; 
     hashmap_insert(g_operators_map, "^=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseLShiftAssign; 
+    value = (uint32_t)VOperator_BitwiseLShiftAssign; 
     hashmap_insert(g_operators_map, "<<=", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseRShiftAssign; 
+    value = (uint32_t)VOperator_BitwiseRShiftAssign; 
     hashmap_insert(g_operators_map, ">>=", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseAnd; 
+    value = (uint32_t)VOperator_BitwiseAnd; 
     hashmap_insert(g_operators_map, "&", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseOr; 
+    value = (uint32_t)VOperator_BitwiseOr; 
     hashmap_insert(g_operators_map, "|", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseXor; 
+    value = (uint32_t)VOperator_BitwiseXor; 
     hashmap_insert(g_operators_map, "^", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseNot; 
+    value = (uint32_t)VOperator_BitwiseNot; 
     hashmap_insert(g_operators_map, "~", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseLShift; 
+    value = (uint32_t)VOperator_BitwiseLShift; 
     hashmap_insert(g_operators_map, "<<", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_BitwiseRShift; 
+    value = (uint32_t)VOperator_BitwiseRShift; 
     hashmap_insert(g_operators_map, ">>", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_ComparatorEquals; 
+    value = (uint32_t)VOperator_ComparatorEquals; 
     hashmap_insert(g_operators_map, "==", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_ComparatorNotEquals; 
+    value = (uint32_t)VOperator_ComparatorNotEquals; 
     hashmap_insert(g_operators_map, "!=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_ComparatorGreaterThan; 
+    value = (uint32_t)VOperator_ComparatorGreaterThan; 
     hashmap_insert(g_operators_map, ">", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_ComparatorLessThan; 
+    value = (uint32_t)VOperator_ComparatorLessThan; 
     hashmap_insert(g_operators_map, "<", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_ComparatorGreaterEqualsThan; 
+    value = (uint32_t)VOperator_ComparatorGreaterEqualsThan; 
     hashmap_insert(g_operators_map, ">=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_ComparatorLessEqualsThan; 
+    value = (uint32_t)VOperator_ComparatorLessEqualsThan; 
     hashmap_insert(g_operators_map, "<=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_LogicalAnd; 
+    value = (uint32_t)VOperator_LogicalAnd; 
     hashmap_insert(g_operators_map, "and", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_LogicalOr; 
+    value = (uint32_t)VOperator_LogicalOr; 
     hashmap_insert(g_operators_map, "or", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_LogicalNot; 
+    value = (uint32_t)VOperator_LogicalNot; 
     hashmap_insert(g_operators_map, "not", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_IdentityIs; 
+    value = (uint32_t)VOperator_IdentityIs; 
     hashmap_insert(g_operators_map, "is", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_IdentityIsNot; 
+    value = (uint32_t)VOperator_IdentityIsNot; 
     hashmap_insert(g_operators_map, "is not", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_MembershipIn; 
+    value = (uint32_t)VOperator_MembershipIn; 
     hashmap_insert(g_operators_map, "in", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)PyOperator_MembershipNotIn; 
+    value = (uint32_t)VOperator_MembershipNotIn; 
     hashmap_insert(g_operators_map, "not in", 6, &value, sizeof(uint32_t));
 }
 
-uint32_t lexer_maps_get_keyword(const char* word, const uint32_t word_size)
+uint32_t v_lexer_maps_get_keyword(const char* word, const uint32_t word_size)
 {
     VENOM_ASSERT(g_keywords_map != NULL, "Keywords map has not been initialized");
 
@@ -527,13 +527,13 @@ uint32_t lexer_maps_get_keyword(const char* word, const uint32_t word_size)
 
     if(keyword == NULL)
     {
-        return PyKeyword_Unknown;
+        return VKeyword_Unknown;
     }
 
     return *((uint32_t*)keyword);
 }
 
-uint32_t lexer_maps_get_delimiter(const char* word, const uint32_t word_size)
+uint32_t v_lexer_maps_get_delimiter(const char* word, const uint32_t word_size)
 {
     VENOM_ASSERT(g_delimiters_map != NULL, "Delimiters map has not been initialized");
 
@@ -541,13 +541,13 @@ uint32_t lexer_maps_get_delimiter(const char* word, const uint32_t word_size)
 
     if(delimiter == NULL)
     {
-        return PyDelimiter_Unknown;
+        return VDelimiter_Unknown;
     }
 
     return *((uint32_t*)delimiter);
 }
 
-uint32_t lexer_maps_get_operator(const char* word, const uint32_t word_size)
+uint32_t v_lexer_maps_get_operator(const char* word, const uint32_t word_size)
 {
     VENOM_ASSERT(g_operators_map != NULL, "Operators map has not been initialized");
 
@@ -555,13 +555,13 @@ uint32_t lexer_maps_get_operator(const char* word, const uint32_t word_size)
 
     if(operator == NULL)
     {
-        return PyOperator_Unknown;
+        return VOperator_Unknown;
     }
 
     return *((uint32_t*)operator);
 }
 
-void lexer_maps_release()
+void v_lexer_maps_release()
 {
     logger_log_debug("Releasing Lexer maps");
 
@@ -584,7 +584,7 @@ void lexer_maps_release()
     }
 }
 
-void lexer_token_debug(PyToken* token)
+void v_lexer_token_debug(VToken* token)
 {
     printf("%s: %.*s\n", 
            token_kind_to_string(token->kind),
@@ -592,7 +592,7 @@ void lexer_token_debug(PyToken* token)
            token->start);
 }
 
-bool lexer_lex(char* buffer, Vector* tokens) 
+bool v_lexer_lex(char* buffer, Vector* tokens) 
 {
     char* s = buffer;
 
@@ -615,11 +615,11 @@ bool lexer_lex(char* buffer, Vector* tokens)
 
             s += length;
 
-            PyToken token = { 
+            VToken token = { 
                 start, 
                 length,
-                PyTokenKind_Literal,
-                PyLiteral_String,
+                VTokenKind_Literal,
+                VLiteral_String,
                 position,
                 line
             };
@@ -639,11 +639,11 @@ bool lexer_lex(char* buffer, Vector* tokens)
 
             if(length > 0) 
             {
-                PyToken token = {
+                VToken token = {
                     start, 
                     length,
-                    PyTokenKind_Literal,
-                    PyLiteral_Float,
+                    VTokenKind_Literal,
+                    VLiteral_Float,
                     position,
                     line
                 };
@@ -659,11 +659,11 @@ bool lexer_lex(char* buffer, Vector* tokens)
 
             if(length > 0)
             {
-                PyToken token = {
+                VToken token = {
                     start, 
                     length,
-                    PyTokenKind_Literal,
-                    PyLiteral_Integer,
+                    VTokenKind_Literal,
+                    VLiteral_Integer,
                     position,
                     line
                 };
@@ -690,14 +690,14 @@ bool lexer_lex(char* buffer, Vector* tokens)
                 length++;
             }
 
-            uint32_t value = lexer_maps_get_keyword(start, length);
+            uint32_t value = v_lexer_maps_get_keyword(start, length);
 
-            if(value != PyKeyword_Unknown) 
+            if(value != VKeyword_Unknown) 
             {
-                PyToken token = {
+                VToken token = {
                     start,
                     length,
-                    PyTokenKind_Keyword,
+                    VTokenKind_Keyword,
                     value,
                     position - length,
                     line
@@ -707,14 +707,14 @@ bool lexer_lex(char* buffer, Vector* tokens)
                 continue;
             }
 
-            value = lexer_maps_get_operator(start, length);
+            value = v_lexer_maps_get_operator(start, length);
 
-            if(value != PyOperator_Unknown)
+            if(value != VOperator_Unknown)
             {
-                PyToken token = {
+                VToken token = {
                     start,
                     length,
-                    PyTokenKind_Operator,
+                    VTokenKind_Operator,
                     value,
                     position - length,
                     line
@@ -724,10 +724,10 @@ bool lexer_lex(char* buffer, Vector* tokens)
                 continue;
             }
 
-            PyToken token = {
+            VToken token = {
                 start,
                 length,
-                PyTokenKind_Identifier,
+                VTokenKind_Identifier,
                 0,
                 position - length,
                 line
@@ -753,19 +753,19 @@ bool lexer_lex(char* buffer, Vector* tokens)
                 }
             }
 
-            uint32_t value = lexer_maps_get_delimiter(start, length);
+            uint32_t value = v_lexer_maps_get_delimiter(start, length);
 
-            if(value == PyDelimiter_Unknown) 
+            if(value == VDelimiter_Unknown) 
             {
                 s -= length;
                 position -= length;
                 goto label_is_operator;
             }
 
-            PyToken token = {
+            VToken token = {
                 start,
                 length,
-                PyTokenKind_Delimiter,
+                VTokenKind_Delimiter,
                 value,
                 position,
                 line
@@ -783,19 +783,19 @@ label_is_operator: ;
             {
                 position += length;
 
-                uint32_t value = lexer_maps_get_operator(start, length);
+                uint32_t value = v_lexer_maps_get_operator(start, length);
 
-                if(value == PyOperator_Unknown || length == PY_LEX_ERROR) 
+                if(value == VOperator_Unknown || length == PY_LEX_ERROR) 
                 {
                     logger_log_error("Syntax Error: Invalid operator: %.*s", (int)length, start);
                     logger_log_error("Line %u, Position %u", line, position);
                     return false;
                 }
 
-                PyToken token = {
+                VToken token = {
                     start,
                     length,
-                    PyTokenKind_Operator,
+                    VTokenKind_Operator,
                     value,
                     position,
                     line
@@ -809,10 +809,10 @@ label_is_operator: ;
         }
         else if(*s == '\n') 
         {
-            PyToken token = {
+            VToken token = {
                 NULL, 
                 0,
-                PyTokenKind_Newline,
+                VTokenKind_Newline,
                 0,
                 position,
                 line
@@ -827,10 +827,10 @@ label_is_operator: ;
 
             while(*s != '\0' && *s == '\n') 
             {
-                PyToken newline_token = {
+                VToken newline_token = {
                     NULL, 
                     0,
-                    PyTokenKind_Newline,
+                    VTokenKind_Newline,
                     0,
                     position,
                     line
@@ -858,10 +858,10 @@ label_is_operator: ;
 
             if(line_indent > indent_level) 
             {
-                PyToken indent_token = {
+                VToken indent_token = {
                     NULL,
                     0,
-                    PyTokenKind_Indent,
+                    VTokenKind_Indent,
                     line_indent,
                     position,
                     line
@@ -871,10 +871,10 @@ label_is_operator: ;
             }
             else if(line_indent < indent_level) 
             {
-                PyToken dedent_token = {
+                VToken dedent_token = {
                     NULL, 
                     0,
-                    PyTokenKind_Dedent,
+                    VTokenKind_Dedent,
                     line_indent,
                     position,
                     line

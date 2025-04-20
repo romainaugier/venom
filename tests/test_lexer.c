@@ -31,9 +31,9 @@ int main(int argc, char** argv)
 
     printf("%.*s\n", (int)content.content_length, content.content);
 
-    Vector* tokens = vector_new(128, sizeof(PyToken));
+    Vector* tokens = vector_new(128, sizeof(VToken));
 
-    if(!lexer_lex(content.content, tokens))
+    if(!v_lexer_lex(content.content, tokens))
     {
         fs_file_content_free(&content);
         vector_free(tokens);
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 
     for(size_t i = 0; i < vector_size(tokens); i++)
     {
-        lexer_token_debug((PyToken*)vector_at(tokens, i));
+        v_lexer_token_debug((VToken*)vector_at(tokens, i));
     }
 
     fs_file_content_free(&content);

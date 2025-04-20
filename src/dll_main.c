@@ -27,7 +27,7 @@ void VENOM_LIB_ENTRY lib_entry(void)
 #endif // VENOM_DEBUG
     logger_init();
 
-    lexer_maps_init();
+    v_lexer_maps_init();
 }
 
 void VENOM_LIB_EXIT lib_exit(void)
@@ -35,7 +35,7 @@ void VENOM_LIB_EXIT lib_exit(void)
 #if VENOM_DEBUG
     printf("libvenom exit\n");
 #endif // VENOM_DEBUG
-    lexer_maps_release();
+    v_lexer_maps_release();
 }
 
 #if defined(VENOM_WIN)
