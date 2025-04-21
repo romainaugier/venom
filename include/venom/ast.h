@@ -27,6 +27,7 @@ typedef enum {
     VASTNodeType_VASTUnOp, /* Unary op */
     VASTNodeType_VASTBinOp, /* Binary op */
     VASTNodeType_VASTTernOp, /* Ternary op */
+    VASTNodeType_VASTDecorator, /* Class/Function decorator */
     VASTNodeType_VASTAttribute, /* Class attribute */
     VASTNodeType_VASTVariable, /* Variable */
     VASTNodeType_VASTLiteral, /* Literal */
@@ -45,6 +46,7 @@ typedef struct VASTAssignment VASTAssignment;
 typedef struct VASTUnOp VASTUnOp;
 typedef struct VASTBinOp VASTBinOp;
 typedef struct VASTTernOp VASTTernOp;
+typedef struct VASTDecorator VASTDecorator;
 typedef struct VASTAttribute VASTAttribute;
 typedef struct VASTVariable VASTVariable;
 typedef struct VASTLiteral VASTLiteral;
@@ -146,6 +148,12 @@ struct VASTTernOp {
     VASTNode* else_expr;
 };
 
+/* Class/Function decorator */
+struct VASTDecorator {
+    VASTNode base;
+    String name;
+};
+
 /* Class attribute */
 struct VASTAttribute {
     VASTNode base;
@@ -208,8 +216,8 @@ struct VASTFCall {
     } kwargs;
 };
 
-#define VAST_CAST(type, node) \
-    ((type*)((node)->type == VASTNodeType_##type ? (node) : NULL))
+#define VAST_CAST(__type__, __node__) \
+    ((__type__*)((__node__)->type == VASTNodeType_##__type__ ? (__node__) : NULL))
 
 typedef struct {
     Arena data;
@@ -220,6 +228,7 @@ typedef struct {
 /* VAST Functions */
 VENOM_API VAST* v_ast_new();
 VENOM_API void v_ast_debug(VAST* ast);
+VENOM_API bool v_ast_from_tokens(VAST* ast, Vector* tokens);
 VENOM_API void v_ast_destroy(VAST* ast);
 
 /* VASTNodes functions */
@@ -240,7 +249,7 @@ VENOM_API VASTNode* v_ast_new_function(VAST* ast,
                                        const String name,
                                        VASTNode** params,
                                        const uint32_t num_params,
-                                       VASTNode* return_type,
+                                       VType return_type,
                                        VASTBody* body);
 
 VENOM_API VASTNode* v_ast_new_body(VAST* ast,
@@ -280,6 +289,9 @@ VENOM_API VASTNode* v_ast_new_ternop(VAST* ast,
                                      VASTNode* condition,
                                      VASTNode* if_expr,
                                      VASTNode* else_expr);
+
+VENOM_API VASTNode* v_ast_new_decorator(VAST* ast,
+                                        const String name);
 
 VENOM_API VASTNode* v_ast_new_attribute(VAST* ast,
                                         const String name,

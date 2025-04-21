@@ -126,7 +126,7 @@
                                                         \
     } CONCAT(__outscope_assert_, __COUNTER__)
 
-#define VENOM_NOT_IMPLEMENTED fprintf(stderr, "Function " VENOM_FUNCTION " not implemented"); exit(1);
+#define VENOM_NOT_IMPLEMENTED fprintf(stderr, "Function " VENOM_FUNCTION " not implemented"); exit(1)
 
 #if defined(VENOM_MSVC)
 #define VENOM_PACKED_STRUCT(__struct__) __pragma(pack(push, 1)) __struct__ __pragma(pack(pop))

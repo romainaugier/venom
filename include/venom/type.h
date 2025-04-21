@@ -25,6 +25,8 @@ typedef enum {
     VType_UserClass,
 } VType;
 
+VENOM_API const char* v_type_to_string(VType type);
+
 VENOM_CPP_END
 
 #endif /* !defined(__VENOM_TYPE) */
