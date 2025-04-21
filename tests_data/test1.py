@@ -6,3 +6,6 @@ def main() -> int:
     b = add(3.0, 19)
 
     return a + b
+
+if __name__ == "__main__":
+    main()

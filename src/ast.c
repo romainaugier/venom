@@ -9,6 +9,8 @@
 /*******************************/
 /* VAST functions */
 
+/* VAST Construction */
+
 VAST* v_ast_new()
 {
     VAST* ast = (VAST*)malloc(sizeof(VAST));
@@ -51,11 +53,11 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
             VASTSource* source = VAST_CAST(VASTSource, node);
             VASSERT_TYPE(VASTSource, source);
 
-            printf("Source (%u declarations)\n", source->num_decls);
+            printf("Source (%u declarations)\n", vector_size(source->decls));
 
-            for(uint32_t i = 0; i < source->num_decls; i++) 
+            for(uint32_t i = 0; i < vector_size(source->decls); i++) 
             {
-                v_ast_node_debug(source->decls[i], indent_level + 1);
+                v_ast_node_debug((VASTNode*)vector_at(source->decls, i), indent_level + 1);
             }
 
             break;
@@ -68,40 +70,40 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
 
             printf("Class \"%s\" (%u bases, %u attributes, %u functions)\n", 
                    class->name,
-                   class->num_bases, 
-                   class->num_attributes,
-                   class->num_functions);
+                   vector_size(class->bases), 
+                   vector_size(class->attributes),
+                   vector_size(class->functions));
             
-            if(class->num_bases > 0) 
+            if(vector_size(class->bases) > 0) 
             {
                 print_indent(indent_level + 1);
                 printf("Bases:\n");
 
-                for(uint32_t i = 0; i < class->num_bases; i++) 
+                for(uint32_t i = 0; i < vector_size(class->bases); i++) 
                 {
-                    v_ast_node_debug(class->bases[i], indent_level + 2);
+                    v_ast_node_debug((VASTNode*)vector_at(class->bases, i), indent_level + 2);
                 }
             }
             
-            if(class->num_attributes > 0) 
+            if(vector_size(class->attributes) > 0) 
             {
                 print_indent(indent_level + 1);
                 printf("Attributes:\n");
 
-                for(uint32_t i = 0; i < class->num_attributes; i++) 
+                for(uint32_t i = 0; i < vector_size(class->attributes); i++) 
                 {
-                    v_ast_node_debug(class->attributes[i], indent_level + 2);
+                    v_ast_node_debug((VASTNode*)vector_at(class->attributes, i), indent_level + 2);
                 }
             }
             
-            if(class->num_functions > 0)
+            if(vector_size(class->functions) > 0)
             {
                 print_indent(indent_level + 1);
                 printf("Functions:\n");
 
-                for(uint32_t i = 0; i < class->num_functions; i++) 
+                for(uint32_t i = 0; i < vector_size(class->functions); i++) 
                 {
-                    v_ast_node_debug(class->functions[i], indent_level + 2);
+                    v_ast_node_debug((VASTNode*)vector_at(class->functions, i), indent_level + 2);
                 }
             }
 
@@ -115,17 +117,17 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
 
             printf("Function \"%s\" (%u parameters, return_type: %s)\n", 
                    func->name,
-                   func->num_params, 
+                   vector_size(func->params), 
                    v_type_to_string(func->return_type));
             
-            if(func->num_params > 0) 
+            if(vector_size(func->params) > 0) 
             {
                 print_indent(indent_level + 1);
                 printf("Parameters:\n");
 
-                for(uint32_t i = 0; i < func->num_params; i++) 
+                for(uint32_t i = 0; i < vector_size(func->params); i++) 
                 {
-                    v_ast_node_debug(func->params[i], indent_level + 2);
+                    v_ast_node_debug((VASTNode*)vector_at(func->params, i), indent_level + 2);
                 }
             }
             
@@ -144,11 +146,11 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
             VASTBody* body = VAST_CAST(VASTBody, node);
             VASSERT_TYPE(VASTBody*, body);
 
-            printf("Body (%u statements)\n", body->num_stmts);
+            printf("Body (%u statements)\n", vector_size(body->stmts));
 
-            for(uint32_t i = 0; i < body->num_stmts; i++) 
+            for(uint32_t i = 0; i < vector_size(body->stmts); i++) 
             {
-                v_ast_node_debug(body->stmts[i], indent_level + 1);
+                v_ast_node_debug((VASTNode*)vector_at(body->stmts, i), indent_level + 1);
             }
 
             break;
@@ -246,7 +248,7 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
             VASTUnOp* unop = VAST_CAST(VASTUnOp, node);
             VASSERT_TYPE(VASTUnOp*, unop);
 
-            printf("Unary Operation (op: %d)\n", unop->op);
+            printf("Unary Operation (op: %s)\n", v_operator_to_string(unop->op));
             
             print_indent(indent_level + 1);
             printf("Operand:\n");
@@ -260,7 +262,7 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
             VASTBinOp* binop = VAST_CAST(VASTBinOp, node);
             VASSERT_TYPE(VASTBinOp*, binop);
 
-            printf("Binary Operation (op: %d)\n", binop->op);
+            printf("Binary Operation (op: %s)\n", v_operator_to_string(binop->op));
             
             print_indent(indent_level + 1);
             printf("Left:\n");
@@ -355,50 +357,59 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
                     break;
                     
                 case VType_List:
-                    printf("List (%u elements)\n", lit->value.list_val.num_elements);
+                    printf("List (%u elements)\n", vector_size(lit->value.list_val.elements));
 
-                    for(uint32_t i = 0; i < lit->value.list_val.num_elements; i++) 
+                    for(uint32_t i = 0; i < vector_size(lit->value.list_val.elements); i++) 
                     {
-                        v_ast_node_debug(lit->value.list_val.elements[i], indent_level + 1);
+                        v_ast_node_debug((VASTNode*)vector_at(lit->value.list_val.elements, i), indent_level + 1);
                     }
 
                     break;
                     
-                case VType_Dict:
-                    printf("Dict (%u pairs)\n", lit->value.dict_val.num_pairs);
+                case VType_Dict: 
+                {
+                    size_t num_pairs = vector_size(lit->value.dict_val.keys);
+                    printf("Dict (%zu pairs)\n", num_pairs);
 
-                    for(uint32_t i = 0; i < lit->value.dict_val.num_pairs; i++) 
+                    for(size_t i = 0; i < num_pairs; i++) 
                     {
                         print_indent(indent_level + 1);
-                        printf("Key %u:\n", i);
-                        v_ast_node_debug(lit->value.dict_val.keys[i], indent_level + 2);
-                        
+                        printf("Key %zu:\n", i);
+                        v_ast_node_debug((VASTNode*)vector_at(lit->value.dict_val.keys, i), indent_level + 2);
+
                         print_indent(indent_level + 1);
-                        printf("Value %u:\n", i);
-                        v_ast_node_debug(lit->value.dict_val.values[i], indent_level + 2);
+                        printf("Value %zu:\n", i);
+                        v_ast_node_debug((VASTNode*)vector_at(lit->value.dict_val.values, i), indent_level + 2);
                     }
 
                     break;
-                    
+                }
+
                 case VType_Tuple:
-                    printf("Tuple (%u elements)\n", lit->value.tuple_val.num_elements);
+                {
+                    size_t num_elements = vector_size(lit->value.tuple_val.elements);
+                    printf("Tuple (%zu elements)\n", num_elements);
 
-                    for(uint32_t i = 0; i < lit->value.tuple_val.num_elements; i++) 
+                    for(size_t i = 0; i < num_elements; i++) 
                     {
-                        v_ast_node_debug(lit->value.tuple_val.elements[i], indent_level + 1);
+                        v_ast_node_debug((VASTNode*)vector_at(lit->value.tuple_val.elements, i), indent_level + 1);
                     }
 
                     break;
-                    
-                case VType_Set:
-                    printf("Set (%u elements)\n", lit->value.set_val.num_elements);
+                }
 
-                    for(uint32_t i = 0; i < lit->value.set_val.num_elements; i++) 
+                case VType_Set: 
+                {
+                    size_t num_elements = vector_size(lit->value.set_val.elements);
+                    printf("Set (%zu elements)\n", num_elements);
+
+                    for(size_t i = 0; i < num_elements; i++) 
                     {
-                        v_ast_node_debug(lit->value.set_val.elements[i], indent_level + 1);
+                        v_ast_node_debug((VASTNode*)vector_at(lit->value.set_val.elements, i), indent_level + 1);
                     }
 
                     break;
+                }
                     
                 default:
                     printf("Unknown literal type\n");
@@ -413,35 +424,38 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
             VASTFCall* fcall = VAST_CAST(VASTFCall, node);
             VASSERT_TYPE(VASTFCall*, fcall);
 
-            printf("Function Call \"%s\" (%u args, %u kwargs)\n", 
-                   fcall->function_name,
-                   fcall->num_args, 
-                   fcall->kwargs.num_kwargs);
-            
-            if(fcall->num_args > 0) 
+            size_t num_args = vector_size(fcall->args);
+            size_t num_kwargs = vector_size(fcall->kwargs.names);
+
+            printf("Function Call \"%s\" (%zu args, %zu kwargs)\n",
+                fcall->function_name,
+                num_args,
+                num_kwargs);
+
+            if(num_args > 0) 
             {
                 print_indent(indent_level + 1);
                 printf("Arguments:\n");
 
-                for(uint32_t i = 0; i < fcall->num_args; i++) 
+                for(size_t i = 0; i < num_args; i++) 
                 {
-                    v_ast_node_debug(fcall->args[i], indent_level + 2);
+                    v_ast_node_debug((VASTNode*)vector_at(fcall->args, i), indent_level + 2);
                 }
             }
-            
-            if(fcall->kwargs.num_kwargs > 0) 
+
+            if(num_kwargs > 0) 
             {
                 print_indent(indent_level + 1);
                 printf("Keyword Arguments:\n");
 
-                for(uint32_t i = 0; i < fcall->kwargs.num_kwargs; i++) 
+                for (size_t i = 0; i < num_kwargs; i++) 
                 {
                     print_indent(indent_level + 2);
-                    printf("\"%s\":\n", fcall->kwargs.names[i]);
-
-                    v_ast_node_debug(fcall->kwargs.values[i], indent_level + 3);
+                    printf("\"%s\":\n", *(String*)vector_at(fcall->kwargs.names, i));
+                    v_ast_node_debug((VASTNode*)vector_at(fcall->kwargs.values, i), indent_level + 3);
                 }
             }
+
             break;
         }
         
@@ -464,10 +478,403 @@ void v_ast_debug(VAST* ast)
 
 /* VAST Parsing */
 
+typedef struct {
+    Vector* tokens;
+    size_t current;
+    VAST* ast;
+    String error;
+} VParser;
+
+VENOM_FORCE_INLINE bool v_parser_is_at_end(VParser* parser)
+{
+    return parser->current >= vector_size(parser->tokens);
+}
+
+VENOM_FORCE_INLINE VToken* v_parser_peek(VParser* parser)
+{
+    if(v_parser_is_at_end(parser))
+    {
+        return NULL;
+    }
+
+    return (VToken*)vector_at(parser->tokens, parser->current);
+}
+
+VENOM_FORCE_INLINE VToken* v_parser_advance(VParser* parser)
+{
+    if(!v_parser_is_at_end(parser))
+    {
+        parser->current++;
+    }
+
+    return (VToken*)vector_at(parser->tokens, parser->current - 1);
+}
+
+VENOM_FORCE_INLINE bool v_parser_check(VParser* parser, VTokenKind kind) 
+{
+    if(v_parser_is_at_end(parser))
+    {
+        return false;
+    }
+
+    return v_parser_peek(parser)->kind == kind;
+}
+
+VENOM_FORCE_INLINE bool v_parser_check_keyword(VParser* parser, VKeyword keyword) 
+{
+    if(v_parser_is_at_end(parser))
+    {
+        return false;
+    }
+
+    VToken* token = v_parser_peek(parser);
+
+    return token->kind == VTokenKind_Keyword && token->type == keyword;
+}
+
+VENOM_FORCE_INLINE bool v_parser_check_delimiter(VParser* parser, VDelimiter delimiter) 
+{
+    if(v_parser_is_at_end(parser)) 
+    {
+        return false;
+    }
+
+    VToken* token = v_parser_peek(parser);
+
+    return token->kind == VTokenKind_Delimiter && token->type == delimiter;
+}
+
+VENOM_FORCE_INLINE bool v_parser_check_operator(VParser* parser, VOperator op) 
+{
+    if(v_parser_is_at_end(parser))
+    {
+        return false;
+    }
+
+    VToken* token = v_parser_peek(parser);
+
+    return token->kind == VTokenKind_Operator && token->type == op;
+}
+
+VENOM_FORCE_INLINE bool v_parser_match(VParser* parser, VTokenKind kind) 
+{
+    if(v_parser_check(parser, kind)) 
+    {
+        v_parser_advance(parser);
+        return true;
+    }
+
+    return false;
+}
+
+VENOM_FORCE_INLINE bool v_parser_match_keyword(VParser* parser, VKeyword keyword) 
+{
+    if(v_parser_check_keyword(parser, keyword)) 
+    {
+        v_parser_advance(parser);
+        return true;
+    }
+
+    return false;
+}
+
+VENOM_FORCE_INLINE bool v_parser_match_delimiter(VParser* parser, VDelimiter delimiter) 
+{
+    if(v_parser_check_delimiter(parser, delimiter)) 
+    {
+        v_parser_advance(parser);
+        return true;
+    }
+
+    return false;
+}
+
+VENOM_FORCE_INLINE bool v_parser_match_operator(VParser* parser, VOperator op) 
+{
+    if(v_parser_check_operator(parser, op)) 
+    {
+        v_parser_advance(parser);
+        return true;
+    }
+
+    return false;
+}
+
+void v_parser_set_error(VParser* parser, const char* message) 
+{
+    if(parser->error != NULL) 
+    {
+        return;
+    }
+
+    VToken* token = v_parser_peek(parser);
+    const uint32_t line_info = token->line > 0 ? token->line : 0;
+
+    parser->error = string_newf("Parsing error at line %d: %s",
+                                line_info,
+                                message);
+}
+
+VASTNode* v_parse_source(VParser* parser);
+VASTNode* v_parse_declaration(VParser* parser);
+VASTNode* v_parse_class_declaration(VParser* parser);
+VASTNode* v_parse_function_declaration(VParser* parser);
+VASTNode* v_parse_statement(VParser* parser);
+VASTNode* v_parse_expression(VParser* parser);
+VASTNode* v_parse_assignment(VParser* parser);
+VASTNode* v_parse_if_statement(VParser* parser);
+VASTNode* v_parse_for_statement(VParser* parser);
+VASTNode* v_parse_while_statement(VParser* parser);
+VASTNode* v_parse_return_statement(VParser* parser);
+VASTNode* v_parse_body(VParser* parser);
+VASTNode* v_parse_decorator(VParser* parser);
+VASTNode* v_parse_logical_or(VParser* parser);
+VASTNode* v_parse_logical_and(VParser* parser);
+VASTNode* v_parse_equality(VParser* parser);
+VASTNode* v_parse_comparison(VParser* parser);
+VASTNode* v_parse_term(VParser* parser);
+VASTNode* v_parse_factor(VParser* parser);
+VASTNode* v_parse_unary(VParser* parser);
+VASTNode* v_parse_primary(VParser* parser);
+VASTNode* v_parse_literal(VParser* parser);
+VASTNode* v_parse_variable(VParser* parser);
+VASTNode* v_parse_function_call(VParser* parser);
+VASTNode* v_parse_attribute_access(VParser* parser);
+VType v_parse_type_annotation(VParser* parser);
+
+VASTNode* v_parse_source(VParser* parser)
+{
+    while(v_parser_match(parser, VTokenKind_Newline))
+    {
+        continue;
+    }
+
+    Vector* decls = vector_new(32, sizeof(VASTNode*));
+
+    while(!v_parser_is_at_end(parser))
+    {
+        while(v_parser_match(parser, VTokenKind_Newline))
+        {
+            continue;
+        }
+
+        if(v_parser_is_at_end(parser))
+        {
+            break;
+        }
+
+        VASTNode* decl = v_parse_declaration(parser);
+
+        if(decl == NULL)
+        {
+            return NULL;
+        }
+
+        vector_push_back(decls, &decl);
+    }
+
+    return v_ast_new_source(parser->ast, decls);
+}
+
+VASTNode* v_parse_declaration(VParser* parser) 
+{
+    /* 
+        Decorator 
+        TODO: Parse more than one decorator
+    */
+
+    if(v_parser_check_delimiter(parser, VDelimiter_At)) 
+    {
+        VASTNode* decorator = v_parse_decorator(parser);
+
+        if(v_parser_check_keyword(parser, VKeyword_Class)) 
+        {
+            VASTClass* class_decl = (VASTClass*)v_parse_class_declaration(parser);
+
+            class_decl->decorators = vector_new(1, sizeof(VASTNode*));
+            vector_push_back(class_decl->decorators, &decorator);
+
+            return (VASTNode*)class_decl;
+        }
+        else if(v_parser_check_keyword(parser, VKeyword_Def)) 
+        {
+            VASTFunction* func_decl = (VASTFunction*)v_parse_function_declaration(parser);
+
+            func_decl->decorators = vector_new(1, sizeof(VASTNode*));
+            vector_push_back(func_decl->decorators, &decorator);
+
+            return (VASTNode*)func_decl;
+        } 
+        else 
+        {
+            v_parser_set_error(parser, "Expecting class or function declaration after decorator");
+            return NULL;
+        }
+    }
+    
+    if(v_parser_check_keyword(parser, VKeyword_Class)) 
+    {
+        return v_parse_class_declaration(parser);
+    }
+    
+    if(v_parser_check_keyword(parser, VKeyword_Def)) 
+    {
+        return v_parse_function_declaration(parser);
+    }
+    
+    return v_parse_statement(parser);
+}
+
+VASTNode* v_parse_class_declaration(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_function_declaration(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_statement(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_expression(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_assignment(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_if_statement(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_for_statement(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_while_statement(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_return_statement(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_body(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_decorator(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_logical_or(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_logical_and(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_equality(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_comparison(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_term(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_factor(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_unary(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_primary(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_literal(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_variable(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_function_call(VParser* parser)
+{
+    return NULL;
+}
+
+VASTNode* v_parse_attribute_access(VParser* parser)
+{
+    return NULL;
+}
+
+VType v_parse_type_annotation(VParser* parser)
+{
+    return VType_Unknown;
+}
+
 bool v_ast_from_tokens(VAST* ast, Vector* tokens)
 {
+    if(ast == NULL || tokens == NULL)
+    {
+        return false;
+    }
+
+    VParser parser = {
+        tokens,
+        0,
+        ast,
+        NULL,
+    };
+
+    ast->root = v_parse_source(&parser);
+
+    if(parser.error != NULL)
+    {
+        ast->error = parser.error;
+        return false;
+    }
+
     return true;
 }
+
+/* VAST Destruction */
+
+/*
+    TODO: recursive destruction of nodes, for now it leaks
+*/
 
 void v_ast_destroy(VAST* ast)
 {
@@ -489,14 +896,12 @@ void v_ast_destroy(VAST* ast)
 /*******************************/
 /* VASTNodes functions */
 
-VASTNode* v_ast_new_source(VAST* ast,
-                           VASTNode** decls,
-                           const uint32_t num_decls)
+VASTNode* v_ast_new_source(VAST* ast, 
+                           Vector* decls) 
 {
-    VASTSource source = { 
+    VASTSource source = {
         { VASTNodeType_VASTSource },
-        decls,
-        num_decls 
+        decls
     };
 
     void* addr = arena_push(&ast->data, &source, sizeof(VASTSource));
@@ -506,43 +911,37 @@ VASTNode* v_ast_new_source(VAST* ast,
 
 VASTNode* v_ast_new_class(VAST* ast,
                           const String name,
-                          VASTNode** bases,
-                          const uint32_t num_bases,
-                          VASTNode** attributes,
-                          const uint32_t num_attributes,
-                          VASTNode** functions,
-                          const uint32_t num_functions)
+                          Vector* bases,
+                          Vector* attributes,
+                          Vector* functions) 
 {
-    VASTClass class = { 
+    VASTClass class_node = {
         { VASTNodeType_VASTClass },
         name,
         bases,
-        num_bases,
         attributes,
-        num_attributes,
         functions,
-        num_functions
+        NULL,
     };
 
-    void* addr = arena_push(&ast->data, &class, sizeof(VASTClass));
+    void* addr = arena_push(&ast->data, &class_node, sizeof(VASTClass));
 
     return (VASTNode*)addr;
 }
 
 VASTNode* v_ast_new_function(VAST* ast,
                              const String name,
-                             VASTNode** params,
-                             const uint32_t num_params,
+                             Vector* params,
                              VType return_type,
-                             VASTBody* body)
+                             VASTBody* body) 
 {
     VASTFunction func = {
         { VASTNodeType_VASTFunction },
         name,
         params,
-        num_params,
         body,
         return_type,
+        NULL,
     };
 
     void* addr = arena_push(&ast->data, &func, sizeof(VASTFunction));
@@ -551,13 +950,11 @@ VASTNode* v_ast_new_function(VAST* ast,
 }
 
 VASTNode* v_ast_new_body(VAST* ast,
-                         VASTNode** stmts,
-                         const uint32_t num_stmts)
+                         Vector* stmts)
 {
     VASTBody body = {
         { VASTNodeType_VASTBody },
         stmts,
-        num_stmts,
     };
 
     void* addr = arena_push(&ast->data, &body, sizeof(VASTBody));
@@ -784,13 +1181,11 @@ VASTNode* v_ast_new_literal_none(VAST* ast)
 }
 
 VASTNode* v_ast_new_literal_list(VAST* ast,
-                                 VASTNode** elements,
-                                 const uint32_t num_elements)
+                                 Vector* elements)
 {
     VASTLiteral lit = { { VASTNodeType_VASTLiteral } };
     lit.lit_type = VType_List;
     lit.value.list_val.elements = elements;
-    lit.value.list_val.num_elements = num_elements;
 
     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
 
@@ -798,15 +1193,13 @@ VASTNode* v_ast_new_literal_list(VAST* ast,
 }
 
 VASTNode* v_ast_new_literal_dict(VAST* ast,
-                                 VASTNode** keys,
-                                 VASTNode** values,
-                                 const uint32_t num_pairs)
+                                 Vector* keys,
+                                 Vector* values)
 {
     VASTLiteral lit = { { VASTNodeType_VASTLiteral } };
     lit.lit_type = VType_Dict;
     lit.value.dict_val.keys = keys;
     lit.value.dict_val.values = values;
-    lit.value.dict_val.num_pairs = num_pairs;
 
     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
 
@@ -814,13 +1207,11 @@ VASTNode* v_ast_new_literal_dict(VAST* ast,
 }
 
 VASTNode* v_ast_new_literal_tuple(VAST* ast,
-                                  VASTNode** elements,
-                                  const uint32_t num_elements)
+                                  Vector* elements)
 {
     VASTLiteral lit = { { VASTNodeType_VASTLiteral } };
     lit.lit_type = VType_Tuple;
     lit.value.tuple_val.elements = elements;
-    lit.value.tuple_val.num_elements = num_elements;
 
     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
 
@@ -828,13 +1219,11 @@ VASTNode* v_ast_new_literal_tuple(VAST* ast,
 }
 
 VASTNode* v_ast_new_literal_set(VAST* ast,
-                                VASTNode** elements,
-                                const uint32_t num_elements)
+                                Vector* elements)
 {
     VASTLiteral lit = { { VASTNodeType_VASTLiteral } };
     lit.lit_type = VType_Set;
     lit.value.set_val.elements = elements;
-    lit.value.set_val.num_elements = num_elements;
 
     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
 
@@ -843,21 +1232,17 @@ VASTNode* v_ast_new_literal_set(VAST* ast,
 
 VASTNode* v_ast_new_fcall(VAST* ast,
                           const String name, 
-                          VASTNode** args,
-                          const uint32_t num_args,
-                          String* kwarg_names,
-                          VASTNode** kwarg_values,
-                          const uint32_t num_kwargs)
+                          Vector* args,
+                          Vector* kwarg_names,
+                          Vector* kwarg_values)
 {
     VASTFCall fcall = {
         { VASTNodeType_VASTFCall },
         name,
         args,
-        num_args,
         {
             kwarg_names,
             kwarg_values,
-            num_kwargs,
         }
     };
 

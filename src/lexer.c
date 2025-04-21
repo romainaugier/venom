@@ -31,6 +31,176 @@ const char* token_kind_to_string(uint32_t token_type)
     return token_kind_names[token_type];
 }
 
+const char* v_keyword_to_string(VKeyword keyword)
+{
+    switch(keyword)
+    {
+        case VKeyword_False:
+            return "false";
+        case VKeyword_Await:
+            return "await";
+        case VKeyword_Else:
+            return "else";
+        case VKeyword_Import:
+            return "import";
+        case VKeyword_Pass:
+            return "pass";
+        case VKeyword_None:
+            return "none";
+        case VKeyword_Break:
+            return "break";
+        case VKeyword_Except:
+            return "except";
+        case VKeyword_In:
+            return "in";
+        case VKeyword_Raise:
+            return "raise";
+        case VKeyword_True:
+            return "true";
+        case VKeyword_Class:
+            return "class";
+        case VKeyword_Finally:
+            return "finally";
+        case VKeyword_Is:
+            return "is";
+        case VKeyword_Return:
+            return "return";
+        case VKeyword_And:
+            return "and";
+        case VKeyword_Continue:
+            return "continue";
+        case VKeyword_For:
+            return "for";
+        case VKeyword_Lambda:
+            return "lambda";
+        case VKeyword_Try:
+            return "try";
+        case VKeyword_As:
+            return "as";
+        case VKeyword_Def:
+            return "def";
+        case VKeyword_From:
+            return "from";
+        case VKeyword_Nonlocal:
+            return "nonlocal";
+        case VKeyword_While:
+            return "while";
+        case VKeyword_Assert:
+            return "assert";
+        case VKeyword_Del:
+            return "del";
+        case VKeyword_Global:
+            return "global";
+        case VKeyword_Not:
+            return "not";
+        case VKeyword_With:
+            return "with";
+        case VKeyword_Async:
+            return "async";
+        case VKeyword_Elif:
+            return "elif";
+        case VKeyword_If:
+            return "if";
+        case VKeyword_Or:
+            return "or";
+        case VKeyword_Yield:
+            return "yield";
+        case VKeyword_Unknown:
+            return "unknown";
+        default:
+            return "unknown";
+    }
+}
+
+const char* v_operator_to_string(VOperator operator)
+{
+    switch(operator)
+    {
+        case VOperator_Addition:
+            return "Addition";
+        case VOperator_Subtraction:
+            return "Subtraction";
+        case VOperator_Multiplication:
+            return "Multiplication";
+        case VOperator_Division:
+            return "Division";
+        case VOperator_Modulus:
+            return "Modulus";
+        case VOperator_Exponentiation:
+            return "Exponentiation";
+        case VOperator_FloorDivision:
+            return "FloorDivision";
+        case VOperator_Assign:
+            return "Assign";
+        case VOperator_AdditionAssign:
+            return "AdditionAssign";
+        case VOperator_SubtractionAssign:
+            return "SubtractionAssign";
+        case VOperator_MultiplicationAssign:
+            return "MultiplicationAssign";
+        case VOperator_DivisionAssign:
+            return "DivisionAssign";
+        case VOperator_ModulusAssign:
+            return "ModulusAssign";
+        case VOperator_FloorDivisionAssign:
+            return "FloorDivisionAssign";
+        case VOperator_ExponentiationAssign:
+            return "ExponentiationAssign";
+        case VOperator_BitwiseAndAssign:
+            return "BitwiseAndAssign";
+        case VOperator_BitwiseOrAssign:
+            return "BitwiseOrAssign";
+        case VOperator_BitwiseXorAssign:
+            return "BitwiseXorAssign";
+        case VOperator_BitwiseLShiftAssign:
+            return "BitwiseLShiftAssign";
+        case VOperator_BitwiseRShiftAssign:
+            return "BitwiseRShiftAssign";
+        case VOperator_BitwiseAnd:
+            return "BitwiseAnd";
+        case VOperator_BitwiseOr:
+            return "BitwiseOr";
+        case VOperator_BitwiseXor:
+            return "BitwiseXor";
+        case VOperator_BitwiseNot:
+            return "BitwiseNot";
+        case VOperator_BitwiseLShift:
+            return "BitwiseLShift";
+        case VOperator_BitwiseRShift:
+            return "BitwiseRShift";
+        case VOperator_ComparatorEquals:
+            return "ComparatorEquals";
+        case VOperator_ComparatorNotEquals:
+            return "ComparatorNotEquals";
+        case VOperator_ComparatorGreaterThan:
+            return "ComparatorGreaterThan";
+        case VOperator_ComparatorLessThan:
+            return "ComparatorLessThan";
+        case VOperator_ComparatorGreaterEqualsThan:
+            return "ComparatorGreaterEqualsThan";
+        case VOperator_ComparatorLessEqualsThan:
+            return "ComparatorLessEqualsThan";
+        case VOperator_LogicalAnd:
+            return "LogicalAnd";
+        case VOperator_LogicalOr:
+            return "LogicalOr";
+        case VOperator_LogicalNot:
+            return "LogicalNot";
+        case VOperator_IdentityIs:
+            return "IdentityIs";
+        case VOperator_IdentityIsNot:
+            return "IdentityIsNot";
+        case VOperator_MembershipIn:
+            return "MembershipIn";
+        case VOperator_MembershipNotIn:
+            return "MembershipNotIn";
+        case VOperator_Unknown:
+            return "Unknown";
+        default:
+            return "unknown";
+    }
+}
+
 VENOM_FORCE_INLINE bool is_letter(unsigned int c) 
 {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
@@ -451,7 +621,7 @@ void v_lexer_maps_init()
     hashmap_insert(g_operators_map, "%", 1, &value, sizeof(uint32_t));
     value = (uint32_t)VOperator_Exponentiation; 
     hashmap_insert(g_operators_map, "**", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_Floor_division; 
+    value = (uint32_t)VOperator_FloorDivision; 
     hashmap_insert(g_operators_map, "//", 2, &value, sizeof(uint32_t));
     value = (uint32_t)VOperator_Assign; 
     hashmap_insert(g_operators_map, "=", 1, &value, sizeof(uint32_t));

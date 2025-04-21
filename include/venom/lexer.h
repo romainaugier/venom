@@ -72,6 +72,8 @@ typedef enum {
     VKeyword_Unknown,
 } VKeyword;
 
+VENOM_API const char* v_keyword_to_string(VKeyword keyword);
+
 typedef enum {
     VDelimiter_LParen,
     VDelimiter_RParen,
@@ -95,7 +97,7 @@ typedef enum {
     VOperator_Division,
     VOperator_Modulus,
     VOperator_Exponentiation,
-    VOperator_Floor_division,
+    VOperator_FloorDivision,
     VOperator_Assign,
     VOperator_AdditionAssign,
     VOperator_SubtractionAssign,
@@ -130,6 +132,8 @@ typedef enum {
     VOperator_MembershipNotIn,
     VOperator_Unknown,
 } VOperator;
+
+VENOM_API const char* v_operator_to_string(VOperator operator);
 
 typedef enum {
     VLiteral_String = 1,

@@ -14,7 +14,7 @@ int main(int argc, char** argv)
 
     logger_init();
 
-    logger_log_info("Starting lexer test");
+    logger_log_info("Starting ast test");
 
     String file_path = string_newf("%s/test1.py", TESTS_DATA_DIR);
 
@@ -52,11 +52,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    v_ast_debug(ast);
+
     v_ast_destroy(ast);
     fs_file_content_free(&content);
     vector_free(tokens);
 
-    logger_log_info("Finished lexer test");
+    logger_log_info("Finished ast test");
     
     return 0;
 }

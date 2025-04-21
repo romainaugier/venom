@@ -1,5 +1,3 @@
-/* SPDX-License-Identifier: BSD-3-Clause */
-/* Copyright (c) 2025 - Present Romain Augier */
 /* All rights reserved. */
 
 #pragma once
@@ -16,22 +14,22 @@
 VENOM_CPP_ENTER
 
 typedef enum {
-    VASTNodeType_VASTSource, /* Source file */
-    VASTNodeType_VASTClass, /* Class definition */
-    VASTNodeType_VASTFunction, /* Function definition */
-    VASTNodeType_VASTBody, /* Scoped block of code inside a function, a source, a for/if */
-    VASTNodeType_VASTFor, /* For/While loop */
-    VASTNodeType_VASTIf, /* If/Else block */
-    VASTNodeType_VASTReturn, /* Return stmt */
-    VASTNodeType_VASTAssignment, /* Assignment, can be augmented/typed */
-    VASTNodeType_VASTUnOp, /* Unary op */
-    VASTNodeType_VASTBinOp, /* Binary op */
-    VASTNodeType_VASTTernOp, /* Ternary op */
-    VASTNodeType_VASTDecorator, /* Class/Function decorator */
-    VASTNodeType_VASTAttribute, /* Class attribute */
-    VASTNodeType_VASTVariable, /* Variable */
-    VASTNodeType_VASTLiteral, /* Literal */
-    VASTNodeType_VASTFCall, /* Function call */
+    VASTNodeType_VASTSource,
+    VASTNodeType_VASTClass,
+    VASTNodeType_VASTFunction,
+    VASTNodeType_VASTBody,
+    VASTNodeType_VASTFor,
+    VASTNodeType_VASTIf,
+    VASTNodeType_VASTReturn,
+    VASTNodeType_VASTAssignment,
+    VASTNodeType_VASTUnOp,
+    VASTNodeType_VASTBinOp,
+    VASTNodeType_VASTTernOp,
+    VASTNodeType_VASTDecorator,
+    VASTNodeType_VASTAttribute,
+    VASTNodeType_VASTVariable,
+    VASTNodeType_VASTLiteral,
+    VASTNodeType_VASTFCall,
 } VASTNodeType;
 
 typedef struct VASTNode VASTNode;
@@ -52,71 +50,58 @@ typedef struct VASTVariable VASTVariable;
 typedef struct VASTLiteral VASTLiteral;
 typedef struct VASTFCall VASTFCall;
 
-/* Base AST node structure */
 struct VASTNode {
     VASTNodeType type;
 };
 
-/* Source file containing declarations */
 struct VASTSource {
     VASTNode base;
-    VASTNode** decls;
-    uint32_t num_decls;
+    Vector* decls;
 };
 
-/* Class definition */
 struct VASTClass {
     VASTNode base;
     String name;
-    VASTNode** bases;      /* Base classes */
-    uint32_t num_bases;
-    VASTNode** attributes; /* Class attributes */
-    uint32_t num_attributes;
-    VASTNode** functions;  /* Class functions (or methods) */
-    uint32_t num_functions;
+    Vector* bases;
+    Vector* attributes;
+    Vector* functions;
+    Vector* decorators;
 };
 
-/* Function/method definition */
 struct VASTFunction {
     VASTNode base;
     String name;
-    VASTNode** params;     /* Function parameters */
-    uint32_t num_params;
-    VASTBody* body;        /* Function body */
+    Vector* params;
+    VASTBody* body;
     VType return_type;
+    Vector* decorators;
 };
 
-/* Code block */
 struct VASTBody {
     VASTNode base;
-    VASTNode** stmts;
-    uint32_t num_stmts;
+    Vector* stmts;
 };
 
-/* For loop structure */
 struct VASTFor {
     VASTNode base;
     bool is_while;
-    VASTNode* target; /* Iterable for for loop */
-    VASTNode* cond;   /* Condition for while loop */
+    VASTNode* target;
+    VASTNode* cond;
     VASTBody* body;
 };
 
-/* If-elif-else structure */
 struct VASTIf {
     VASTNode base;
     VASTNode* condition;
     VASTBody* body;
-    VASTNode* else_node;   /* Either another VASTIf (for elif) or VASTBody (for else) */
+    VASTNode* else_node;
 };
 
-/* Return statement */
 struct VASTReturn {
     VASTNode base;
     VASTNode* value;
 };
 
-/* Assignment statement, including augmented (+=, -=, etc.) */
 struct VASTAssignment {
     VASTNode base;
     VASTNode* target;
@@ -125,14 +110,12 @@ struct VASTAssignment {
     VType type;
 };
 
-/* Unary operation (-, not, ~) */
 struct VASTUnOp {
     VASTNode base;
     VOperator op;
     VASTNode* operand;
 };
 
-/* Binary operation (+, -, *, /, etc.) */
 struct VASTBinOp {
     VASTNode base;
     VOperator op;
@@ -140,7 +123,6 @@ struct VASTBinOp {
     VASTNode* right;
 };
 
-/* Ternary operation (x if cond else y) */
 struct VASTTernOp {
     VASTNode base;
     VASTNode* condition;
@@ -148,27 +130,23 @@ struct VASTTernOp {
     VASTNode* else_expr;
 };
 
-/* Class/Function decorator */
 struct VASTDecorator {
     VASTNode base;
     String name;
 };
 
-/* Class attribute */
 struct VASTAttribute {
     VASTNode base;
     String name;
     VType type;
 };
 
-/* Variable reference */
 struct VASTVariable {
     VASTNode base;
     String name;
     VType type;
 };
 
-/* Literal value */
 struct VASTLiteral {
     VASTNode base;
     VType lit_type;
@@ -180,39 +158,32 @@ struct VASTLiteral {
         bool bool_val;
 
         struct {
-            VASTNode** elements;
-            uint32_t num_elements;
+            Vector* elements;
         } list_val;
 
         struct {
-            VASTNode** keys;
-            VASTNode** values;
-            uint32_t num_pairs;
+            Vector* keys;
+            Vector* values;
         } dict_val;
 
         struct {
-            VASTNode** elements;
-            uint32_t num_elements;
+            Vector* elements;
         } tuple_val;
 
         struct {
-            VASTNode** elements;
-            uint32_t num_elements;
+            Vector* elements;
         } set_val;
     } value;
 };
 
-/* Function call */
 struct VASTFCall {
     VASTNode base;
     String function_name;
-    VASTNode** args;
-    uint32_t num_args;
+    Vector* args;
 
     struct {
-        String* names;
-        VASTNode** values;
-        uint32_t num_kwargs;
+        Vector* names;
+        Vector* values;
     } kwargs;
 };
 
@@ -232,29 +203,22 @@ VENOM_API bool v_ast_from_tokens(VAST* ast, Vector* tokens);
 VENOM_API void v_ast_destroy(VAST* ast);
 
 /* VASTNodes functions */
-VENOM_API VASTNode* v_ast_new_source(VAST* ast, 
-                                     VASTNode** decls,
-                                     const uint32_t num_decls);
+VENOM_API VASTNode* v_ast_new_source(VAST* ast, Vector* decls);
 
 VENOM_API VASTNode* v_ast_new_class(VAST* ast,
                                     const String name,
-                                    VASTNode** bases,
-                                    const uint32_t num_bases,
-                                    VASTNode** attributes,
-                                    const uint32_t num_attributes,
-                                    VASTNode** functions,
-                                    const uint32_t num_functions);
+                                    Vector* bases,
+                                    Vector* attributes,
+                                    Vector* functions);
 
 VENOM_API VASTNode* v_ast_new_function(VAST* ast,
                                        const String name,
-                                       VASTNode** params,
-                                       const uint32_t num_params,
+                                       Vector* params,
                                        VType return_type,
                                        VASTBody* body);
 
-VENOM_API VASTNode* v_ast_new_body(VAST* ast,
-                                   VASTNode** stmts,
-                                   const uint32_t num_stmts);
+VENOM_API VASTNode* v_ast_new_body(VAST* ast, 
+                                   Vector* stmts);
 
 VENOM_API VASTNode* v_ast_new_for(VAST* ast,
                                   bool is_while,
@@ -277,10 +241,10 @@ VENOM_API VASTNode* v_ast_new_assignment(VAST* ast,
                                          const VType type);
 
 VENOM_API VASTNode* v_ast_new_unop(VAST* ast,
-                                   const VOperator op, 
+                                   const VOperator op,
                                    VASTNode* operand);
 
-VENOM_API VASTNode* v_ast_new_binop(VAST* ast, 
+VENOM_API VASTNode* v_ast_new_binop(VAST* ast,
                                     const VOperator op,
                                     VASTNode* left,
                                     VASTNode* right);
@@ -297,7 +261,7 @@ VENOM_API VASTNode* v_ast_new_attribute(VAST* ast,
                                         const String name,
                                         const VType type);
 
-VENOM_API VASTNode* v_ast_new_variable(VAST* ast, 
+VENOM_API VASTNode* v_ast_new_variable(VAST* ast,
                                        const String name,
                                        const VType type);
 
@@ -316,30 +280,22 @@ VENOM_API VASTNode* v_ast_new_literal_bool(VAST* ast,
 VENOM_API VASTNode* v_ast_new_literal_none(VAST* ast);
 
 VENOM_API VASTNode* v_ast_new_literal_list(VAST* ast,
-                                           VASTNode** elements,
-                                           const uint32_t num_elements);
+                                           Vector* elements);
 
 VENOM_API VASTNode* v_ast_new_literal_dict(VAST* ast,
-                                           VASTNode** keys,
-                                           VASTNode** values,
-                                           const uint32_t num_pairs);
+                                           Vector* keys,
+                                           Vector* values);
 
 VENOM_API VASTNode* v_ast_new_literal_tuple(VAST* ast,
-                                            VASTNode** elements,
-                                            const uint32_t num_elements);
+                                            Vector* elements);
 
 VENOM_API VASTNode* v_ast_new_literal_set(VAST* ast,
-                                          VASTNode** elements,
-                                          const uint32_t num_elements);
+                                          Vector* elements);
 
 VENOM_API VASTNode* v_ast_new_fcall(VAST* ast,
-                                    const String name, 
-                                    VASTNode** args,
-                                    const uint32_t num_args,
-                                    String* kwarg_names,
-                                    VASTNode** kwarg_values,
-                                    const uint32_t num_kwargs);
+                                    const String name,
+                                    Vector* args,
+                                    Vector* kwarg_names,
+                                    Vector* kwarg_values);
 
-VENOM_CPP_END
-
-#endif /* !defined(__VENOM_AST) */
+#endif /* __VENOM_AST */
