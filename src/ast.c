@@ -600,6 +600,48 @@ VENOM_FORCE_INLINE bool v_parser_match_operator(VParser* parser, VOperator op)
     return false;
 }
 
+VENOM_FORCE_INLINE VToken* v_parser_consume(VParser* parser,
+                                            VTokenKind kind,
+                                            const char* error_message) 
+{
+    if(v_parser_check(parser, kind)) 
+    {
+        return v_parser_advance(parser);
+    }
+
+    v_parser_set_error(parser, error_message);
+    
+    return NULL;
+}
+
+VENOM_FORCE_INLINE VToken* v_parser_consume_delimiter(VParser* parser, 
+                                                      VDelimiter delimiter,
+                                                      const char* error_message) 
+{
+    if(v_parser_check_delimiter(parser, delimiter)) 
+    {
+        return v_parser_advance(parser);
+    }
+
+    v_parser_set_error(parser, error_message);
+
+    return NULL;
+}
+
+VENOM_FORCE_INLINE VToken* v_parser_consume_keyword(VParser* parser,
+                                                    VKeyword keyword,
+                                                    const char* error_message) 
+{
+    if(v_parser_check_keyword(parser, keyword)) 
+    {
+        return v_parser_advance(parser);
+    }
+
+    v_parser_set_error(parser, error_message);
+
+    return NULL;
+}
+
 void v_parser_set_error(VParser* parser, const char* message) 
 {
     if(parser->error != NULL) 
@@ -628,6 +670,7 @@ VASTNode* v_parse_while_statement(VParser* parser);
 VASTNode* v_parse_return_statement(VParser* parser);
 VASTNode* v_parse_body(VParser* parser);
 VASTNode* v_parse_decorator(VParser* parser);
+Vector* v_parse_decorators(VParser* parser);
 VASTNode* v_parse_logical_or(VParser* parser);
 VASTNode* v_parse_logical_and(VParser* parser);
 VASTNode* v_parse_equality(VParser* parser);
@@ -641,6 +684,7 @@ VASTNode* v_parse_variable(VParser* parser);
 VASTNode* v_parse_function_call(VParser* parser);
 VASTNode* v_parse_attribute_access(VParser* parser);
 VType v_parse_type_annotation(VParser* parser);
+Vector* v_parse_parameter_list(VParser* parser);
 
 VASTNode* v_parse_source(VParser* parser)
 {
@@ -732,7 +776,71 @@ VASTNode* v_parse_class_declaration(VParser* parser)
 
 VASTNode* v_parse_function_declaration(VParser* parser)
 {
-    return NULL;
+    if(!v_parser_consume_keyword(parser, VKeyword_Def, "Expected \"def\" keyword for function declaration"))
+    {
+        return NULL;
+    }
+
+    VToken* name_token = v_parser_consume(parser, VTokenKind_Identifier, "Expected a function name after \"def\"");
+
+    if(name_token == NULL)
+    {
+        return NULL;
+    }
+
+    String name = string_newf("%*.s", name_token->length, name_token->start);
+
+    Vector* params = v_parse_parameter_list(parser);
+
+    if(params == NULL)
+    {
+        string_free(name);
+        return NULL;
+    }
+
+    VType return_type = VType_Unknown;
+
+    if(v_parser_match_delimiter(parser, VDelimiter_RightArrow))
+    {
+        return_type = v_parse_type_annotation(parser);
+
+        if(parser->error != NULL)
+        {
+            string_free(name);
+
+            for(uint32_t i = 0; i < vector_size(params); i++)
+            {
+                string_free(((VASTArgument*)vector_at(params, i))->name);
+            }
+
+            vector_free(params);
+            return NULL;
+        }
+    }
+
+    if(!v_parser_consume_delimiter(parser, VDelimiter_Colon, "Expected \":\" after function signature"))
+    {
+        string_free(name);
+
+        for(uint32_t i = 0; i < vector_size(params); i++)
+        {
+            string_free(((VASTArgument*)vector_at(params, i))->name);
+        }
+
+        vector_free(params);
+        return NULL;
+    }
+
+    VASTNode* body = v_parse_body(parser);
+
+    if(body == NULL)
+    {
+        string_free(name);
+        vector_free(params);
+        return NULL;
+    }
+
+    return v_ast_new_function(parser->ast, name, params, return_type, body);
 }
 
 VASTNode* v_parse_statement(VParser* parser)
@@ -842,7 +950,95 @@ VASTNode* v_parse_attribute_access(VParser* parser)
 
 VType v_parse_type_annotation(VParser* parser)
 {
+    VToken* type_token = v_parser_peek(parser);
     return VType_Unknown;
+}
+
+Vector* v_parse_parameter_list(VParser* parser) 
+{
+    Vector* params = vector_new(4, sizeof(VASTNode*));
+
+    if(!v_parser_consume_delimiter(parser, VDelimiter_LParen, "Expected \"(\" after function name")) 
+    {
+        vector_free(params);
+        return NULL;
+    }
+
+    if (!v_parser_check_delimiter(parser, VDelimiter_RParen)) 
+    {
+        do {
+            VToken* param_token = v_parser_consume(parser, VTokenKind_Identifier, "Expected parameter name");
+
+            if(param_token == NULL) 
+            {
+                for(uint32_t i = 0; i < vector_size(params); i++)
+                {
+                    string_free(((VASTArgument*)vector_at(params, i))->name);
+                }
+
+                vector_free(params);
+                return NULL;
+            }
+
+            String param_name = string_newf("%.*s", (int)param_token->length, param_token->start);
+
+            VType param_type = VType_Unknown;
+            VASTNode* default_value = NULL;
+
+            if(v_parser_match_delimiter(parser, VDelimiter_Colon)) 
+            {
+                param_type = v_parse_type_annotation(parser);
+
+                if(parser->error != NULL) 
+                { 
+                    string_free(param_name);
+
+                    for(uint32_t i = 0; i < vector_size(params); i++)
+                    {
+                        string_free(((VASTArgument*)vector_at(params, i))->name);
+                    }
+
+                    vector_free(params);
+                    return NULL;
+                }
+            }
+
+            if(v_parser_match_operator(parser, VOperator_Assign)) 
+            {
+                default_value = v_parse_expression(parser);
+
+                if(default_value == NULL) 
+                { 
+                    string_free(param_name);
+
+                    for(uint32_t i = 0; i < vector_size(params); i++)
+                    {
+                        string_free(((VASTArgument*)vector_at(params, i))->name);
+                    }
+
+                    vector_free(params);
+                    return NULL;
+                }
+            }
+
+            VASTNode* param_node = v_ast_new_argument(parser->ast, param_name, param_type, default_value);
+            vector_push_back(params, param_node);
+
+        } while (v_parser_match_delimiter(parser, VDelimiter_Comma));
+    }
+
+    if(!v_parser_consume_delimiter(parser, VDelimiter_RParen, "Expected \")\" after parameters")) 
+    {
+        for(uint32_t i = 0; i < vector_size(params); i++)
+        {
+            string_free(((VASTArgument*)vector_at(params, i))->name);
+        }
+
+        vector_free(params); 
+        return NULL;
+    }
+
+    return params;
 }
 
 bool v_ast_from_tokens(VAST* ast, Vector* tokens)
@@ -876,6 +1072,73 @@ bool v_ast_from_tokens(VAST* ast, Vector* tokens)
     TODO: recursive destruction of nodes, for now it leaks
 */
 
+void v_ast_destroy_node(VASTNode* node)
+{
+    if(node == NULL)
+    {
+        return;
+    }
+
+    const VASTNodeType type = node->type;
+
+    switch(type)
+    {
+        case VASTNodeType_VASTSource: 
+            v_ast_destroy_source(node);
+            break;
+        case VASTNodeType_VASTClass: 
+            v_ast_destroy_class(node);
+            break;
+        case VASTNodeType_VASTFunction: 
+            v_ast_destroy_function(node);
+            break;
+        case VASTNodeType_VASTBody: 
+            v_ast_destroy_body(node);
+            break;
+        case VASTNodeType_VASTFor: 
+            v_ast_destroy_for(node);
+            break;
+        case VASTNodeType_VASTIf: 
+            v_ast_destroy_if(node);
+            break;
+        case VASTNodeType_VASTReturn: 
+            v_ast_destroy_return(node);
+            break;
+        case VASTNodeType_VASTAssignment: 
+            v_ast_destroy_assignment(node);
+            break;
+        case VASTNodeType_VASTUnOp: 
+            v_ast_destroy_unop(node);
+            break;
+        case VASTNodeType_VASTBinOp: 
+            v_ast_destroy_binop(node);
+            break;
+        case VASTNodeType_VASTTernOp: 
+            v_ast_destroy_ternop(node);
+            break;
+        case VASTNodeType_VASTDecorator: 
+            v_ast_destroy_decorator(node);
+            break;
+        case VASTNodeType_VASTAttribute: 
+            v_ast_destroy_attribute(node);
+            break;
+        case VASTNodeType_VASTVariable: 
+            v_ast_destroy_variable(node);
+            break;
+        case VASTNodeType_VASTArgument: 
+            v_ast_destroy_argument(node);
+            break;
+        case VASTNodeType_VASTLiteral: 
+            v_ast_destroy_literal(node);
+            break;
+        case VASTNodeType_VASTFCall: 
+            v_ast_destroy_fcall(node);
+            break;
+        default:
+            break;
+    }
+}
+
 void v_ast_destroy(VAST* ast)
 {
     if(ast != NULL)
@@ -887,10 +1150,19 @@ void v_ast_destroy(VAST* ast)
             string_free(ast->error);
         }
 
+        v_ast_destroy_node(ast->root);
+
         free(ast);
 
         ast = NULL;
     }
+}
+
+void v_ast_vector_free_callback(void* element)
+{
+    VASTNode* node = *(VASTNode**)element;
+
+    v_ast_destroy_node(node);
 }
 
 /*******************************/
@@ -907,6 +1179,14 @@ VASTNode* v_ast_new_source(VAST* ast,
     void* addr = arena_push(&ast->data, &source, sizeof(VASTSource));
 
     return (VASTNode*)addr;
+}
+
+void v_ast_destroy_source(VASTNode* source)
+{
+    VASTSource* src = VAST_CAST(VASTSource, source);
+    VASSERT_TYPE(VASTSource, src);
+
+    vector_free_with_dtor(src->decls, v_ast_vector_free_callback);
 }
 
 VASTNode* v_ast_new_class(VAST* ast,
@@ -929,6 +1209,19 @@ VASTNode* v_ast_new_class(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_class(VASTNode* class)
+{
+    VASTClass* cls = VAST_CAST(VASTClass, class);
+    VASSERT_TYPE(VASTClass, cls);
+
+    string_free(cls->name);
+
+    vector_free_with_dtor(cls->bases, v_ast_vector_free_callback);
+    vector_free_with_dtor(cls->attributes, v_ast_vector_free_callback);
+    vector_free_with_dtor(cls->functions, v_ast_vector_free_callback);
+    vector_free_with_dtor(cls->decorators, v_ast_vector_free_callback);
+}
+
 VASTNode* v_ast_new_function(VAST* ast,
                              const String name,
                              Vector* params,
@@ -949,6 +1242,18 @@ VASTNode* v_ast_new_function(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_function(VASTNode* function)
+{
+    VASTFunction* func = VAST_CAST(VASTFunction, function);
+    VASSERT_TYPE(VASTFunction, func);
+
+    string_free(func->name);
+
+    v_ast_destroy_node(func->body);
+    vector_free_with_dtor(func->params, v_ast_vector_free_callback);
+    vector_free_with_dtor(func->decorators, v_ast_vector_free_callback);
+}
+
 VASTNode* v_ast_new_body(VAST* ast,
                          Vector* stmts)
 {
@@ -960,6 +1265,14 @@ VASTNode* v_ast_new_body(VAST* ast,
     void* addr = arena_push(&ast->data, &body, sizeof(VASTBody));
 
     return (VASTNode*)addr;
+}
+
+void v_ast_destroy_body(VASTNode* body)
+{
+    VASTBody* b = VAST_CAST(VASTBody, body);
+    VASSERT_TYPE(VASTBody, b);
+
+    vector_free_with_dtor(b->stmts, v_ast_vector_free_callback);
 }
 
 VASTNode* v_ast_new_for(VAST* ast,
@@ -981,6 +1294,16 @@ VASTNode* v_ast_new_for(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_for(VASTNode* for_)
+{
+    VASTFor* f = VAST_CAST(VASTFor, for_);
+    VASSERT_TYPE(VASTFor, f);
+    
+    v_ast_destroy_node(f->target);
+    v_ast_destroy_node(f->cond);
+    v_ast_destroy_node(f->body);
+}
+
 VASTNode* v_ast_new_if(VAST* ast,
                        VASTNode* condition,
                        VASTBody* body,
@@ -998,6 +1321,16 @@ VASTNode* v_ast_new_if(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_if(VASTNode* if_)
+{
+    VASTIf* i = VAST_CAST(VASTIf, if_);
+    VASSERT_TYPE(VASTIf, i);
+
+    v_ast_destroy_node(i->condition);
+    v_ast_destroy_node(i->body);
+    v_ast_destroy_node(i->else_node);
+}
+
 VASTNode* v_ast_new_return(VAST* ast,
                            VASTNode* value)
 {
@@ -1009,6 +1342,14 @@ VASTNode* v_ast_new_return(VAST* ast,
     void* addr = arena_push(&ast->data, &ret, sizeof(VASTReturn));
 
     return (VASTNode*)addr;
+}
+
+void v_ast_destroy_return(VASTNode* ret)
+{
+    VASTReturn* r = VAST_CAST(VASTReturn, ret);
+    VASSERT_TYPE(VASTReturn, r);
+
+    v_ast_destroy_node(r->value);
 }
 
 VASTNode* v_ast_new_assignment(VAST* ast,
@@ -1030,6 +1371,15 @@ VASTNode* v_ast_new_assignment(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_assignment(VASTNode* assignment)
+{
+    VASTAssignment* assign = VAST_CAST(VASTAssignment, assignment);
+    VASSERT_TYPE(VASTAssignment, assign);
+
+    v_ast_destroy_node(assign->target);
+    v_ast_destroy_node(assign->value);
+}
+
 VASTNode* v_ast_new_unop(VAST* ast,
                          const VOperator op, 
                          VASTNode* operand)
@@ -1043,6 +1393,14 @@ VASTNode* v_ast_new_unop(VAST* ast,
     void* addr = arena_push(&ast->data, &unop, sizeof(VASTUnOp));
 
     return (VASTNode*)addr;
+}
+
+void v_ast_destroy_unop(VASTNode* unop)
+{
+    VASTUnOp* op = VAST_CAST(VASTUnOp, unop);
+    VASSERT_TYPE(VASTUnOp, op);
+
+    v_ast_destroy_node(op->operand);
 }
 
 VASTNode* v_ast_new_binop(VAST* ast, 
@@ -1062,6 +1420,15 @@ VASTNode* v_ast_new_binop(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_binop(VASTNode* binop)
+{
+    VASTBinOp* op = VAST_CAST(VASTBinOp, binop);
+    VASSERT_TYPE(VASTUnOp, op);
+
+    v_ast_destroy_node(op->left);
+    v_ast_destroy_node(op->right);
+}
+
 VASTNode* v_ast_new_ternop(VAST* ast,
                            VASTNode* condition,
                            VASTNode* if_expr,
@@ -1079,6 +1446,16 @@ VASTNode* v_ast_new_ternop(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_ternop(VASTNode* ternop)
+{
+    VASTTernOp* op = VAST_CAST(VASTTernOp, ternop);
+    VASSERT_TYPE(VASTUnOp, op);
+
+    v_ast_destroy_node(op->condition);
+    v_ast_destroy_node(op->if_expr);
+    v_ast_destroy_node(op->else_expr);
+}
+
 VASTNode* v_ast_new_decorator(VAST* ast,
                               const String name)
 {
@@ -1090,6 +1467,14 @@ VASTNode* v_ast_new_decorator(VAST* ast,
     void* addr = arena_push(&ast->data, &decorator, sizeof(VASTDecorator));
 
     return (VASTNode*)addr;
+}
+
+void v_ast_destroy_decorator(VASTNode* decorator)
+{
+    VASTDecorator* dec = VAST_CAST(VASTDecorator, decorator);
+    VASSERT_TYPE(VASTDecorator, dec);
+
+    string_free(dec->name);
 }
 
 VASTNode* v_ast_new_attribute(VAST* ast,
@@ -1107,6 +1492,14 @@ VASTNode* v_ast_new_attribute(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_attribute(VASTNode* attribute)
+{
+    VASTAttribute* attr = VAST_CAST(VASTAttribute, attribute);
+    VASSERT_TYPE(VASTAttribute, attr);
+
+    string_free(attr->name);
+}
+
 VASTNode* v_ast_new_variable(VAST* ast, 
                              const String name,
                              const VType type)
@@ -1120,6 +1513,41 @@ VASTNode* v_ast_new_variable(VAST* ast,
     void* addr = arena_push(&ast->data, &var, sizeof(VASTVariable));
 
     return (VASTNode*)addr;
+}
+
+void v_ast_destroy_variable(VASTNode* variable)
+{
+    VASTVariable* var = VAST_CAST(VASTVariable, variable);
+    VASSERT_TYPE(VASTVariable, var);
+
+    string_free(var->name);
+}
+
+VASTNode* v_ast_new_argument(VAST* ast,
+                             const String name,
+                             const VType type,
+                             VASTNode* default_value)
+{
+    VASTArgument arg = {
+        { VASTNodeType_VASTArgument },
+        name,
+        type,
+        default_value,
+    };
+
+    void* addr = arena_push(&ast->data, &arg, sizeof(VASTArgument));
+
+    return (VASTNode*)addr;
+}
+
+void v_ast_destroy_argument(VASTNode* argument)
+{
+    VASTArgument* arg = VAST_CAST(VASTArgument, argument);
+    VASSERT_TYPE(VASTArgument, arg);
+
+    string_free(arg->name);
+    
+    v_ast_destroy_node(arg->default_value);
 }
 
 VASTNode* v_ast_new_literal_int(VAST* ast,
@@ -1230,6 +1658,32 @@ VASTNode* v_ast_new_literal_set(VAST* ast,
     return (VASTNode*)addr;
 }
 
+void v_ast_destroy_literal(VASTNode* literal)
+{
+    VASTLiteral* lit = VAST_CAST(VASTLiteral, literal);
+    VASSERT_TYPE(VASTLiteral, lit);
+
+    switch(lit->lit_type)
+    {
+        case VType_String:
+            string_free(lit->value.str_val);
+            break;
+        case VType_List:
+            vector_free_with_dtor(lit->value.list_val.elements, v_ast_vector_free_callback);
+            break;
+        case VType_Dict:
+            vector_free_with_dtor(lit->value.dict_val.keys, v_ast_vector_free_callback);
+            vector_free_with_dtor(lit->value.dict_val.values, v_ast_vector_free_callback);
+            break;
+        case VType_Tuple:
+            vector_free_with_dtor(lit->value.tuple_val.elements, v_ast_vector_free_callback);
+            break;
+        case VType_Set:
+            vector_free_with_dtor(lit->value.set_val.elements, v_ast_vector_free_callback);
+            break;
+    }
+}
+
 VASTNode* v_ast_new_fcall(VAST* ast,
                           const String name, 
                           Vector* args,
@@ -1249,4 +1703,22 @@ VASTNode* v_ast_new_fcall(VAST* ast,
     void* addr = arena_push(&ast->data, &fcall, sizeof(VASTFCall));
 
     return (VASTNode*)addr;
+}
+
+void v_ast_vector_free_destroy_string(void* element)
+{
+    String to_free = *(String*)element;
+    string_free(*to_free);
+}
+
+void v_ast_destroy_fcall(VASTNode* fcall)
+{
+    VASTFCall* f = VAST_CAST(VASTFCall, fcall);
+    VASSERT_TYPE(VASTFCall, f);
+
+    string_free(f->function_name);
+
+    vector_free_with_dtor(f->args, v_ast_vector_free_callback);
+    vector_free_with_dtor(f->kwargs.names, v_ast_vector_free_destroy_string);
+    vector_free_with_dtor(f->kwargs.values, v_ast_vector_free_callback);
 }

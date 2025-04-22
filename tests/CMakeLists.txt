@@ -35,7 +35,7 @@ if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     )
 
     set(PDB_COPY_COMMAND
-        ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE_DIR:${LIBNAME}>/$<TARGET_FILE_BASE_NAME:${PROJECT_NAME}>.pdb $<TARGET_FILE_DIR:${TESTNAME}>)
+        ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE_DIR:${LIB_NAME}>/$<TARGET_FILE_BASE_NAME:${LIB_NAME}>.pdb $<TARGET_FILE_DIR:${TESTNAME}>)
 
     add_custom_command(
         TARGET ${TESTNAME} POST_BUILD
@@ -46,8 +46,12 @@ endif()
 
 # Copy venom shared lib to the tests bin directory
 
-add_custom_command(
-    TARGET ${TESTNAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    $<TARGET_FILE:${LIB_NAME}> $<TARGET_FILE_DIR:${TESTNAME}>
-)
+if(WIN32)
+    add_custom_command(
+        TARGET ${TESTNAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            $<TARGET_RUNTIME_DLLS:${TESTNAME}>
+            $<TARGET_FILE_DIR:${TESTNAME}>
+        COMMAND_EXPAND_LISTS
+    )
+endif()

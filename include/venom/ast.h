@@ -28,6 +28,7 @@ typedef enum {
     VASTNodeType_VASTDecorator,
     VASTNodeType_VASTAttribute,
     VASTNodeType_VASTVariable,
+    VASTNodeType_VASTArgument,
     VASTNodeType_VASTLiteral,
     VASTNodeType_VASTFCall,
 } VASTNodeType;
@@ -47,6 +48,7 @@ typedef struct VASTTernOp VASTTernOp;
 typedef struct VASTDecorator VASTDecorator;
 typedef struct VASTAttribute VASTAttribute;
 typedef struct VASTVariable VASTVariable;
+typedef struct VASTArgument VASTArgument;
 typedef struct VASTLiteral VASTLiteral;
 typedef struct VASTFCall VASTFCall;
 
@@ -147,6 +149,13 @@ struct VASTVariable {
     VType type;
 };
 
+struct VASTArgument {
+    VASTNode base;
+    String name;
+    VType type;
+    VASTNode* default_value;
+};
+
 struct VASTLiteral {
     VASTNode base;
     VType lit_type;
@@ -201,9 +210,12 @@ VENOM_API VAST* v_ast_new();
 VENOM_API void v_ast_debug(VAST* ast);
 VENOM_API bool v_ast_from_tokens(VAST* ast, Vector* tokens);
 VENOM_API void v_ast_destroy(VAST* ast);
+VENOM_API void v_ast_destroy_node(VASTNode* node);
 
 /* VASTNodes functions */
 VENOM_API VASTNode* v_ast_new_source(VAST* ast, Vector* decls);
+
+VENOM_API void v_ast_destroy_source(VASTNode* source);
 
 VENOM_API VASTNode* v_ast_new_class(VAST* ast,
                                     const String name,
@@ -211,14 +223,20 @@ VENOM_API VASTNode* v_ast_new_class(VAST* ast,
                                     Vector* attributes,
                                     Vector* functions);
 
+VENOM_API void v_ast_destroy_class(VASTNode* class);
+
 VENOM_API VASTNode* v_ast_new_function(VAST* ast,
                                        const String name,
                                        Vector* params,
                                        VType return_type,
                                        VASTBody* body);
 
+VENOM_API void v_ast_destroy_function(VASTNode* function);
+
 VENOM_API VASTNode* v_ast_new_body(VAST* ast, 
                                    Vector* stmts);
+
+VENOM_API void v_ast_destroy_body(VASTNode* body);
 
 VENOM_API VASTNode* v_ast_new_for(VAST* ast,
                                   bool is_while,
@@ -226,13 +244,19 @@ VENOM_API VASTNode* v_ast_new_for(VAST* ast,
                                   VASTNode* cond,
                                   VASTBody* body);
 
+VENOM_API void v_ast_destroy_for(VASTNode* for_);
+
 VENOM_API VASTNode* v_ast_new_if(VAST* ast,
                                  VASTNode* condition,
                                  VASTBody* body,
                                  VASTNode* else_node);
 
+VENOM_API void v_ast_destroy_if(VASTNode* if_);
+
 VENOM_API VASTNode* v_ast_new_return(VAST* ast,
                                      VASTNode* value);
+
+VENOM_API void v_ast_destroy_return(VASTNode* ret);
 
 VENOM_API VASTNode* v_ast_new_assignment(VAST* ast,
                                          VASTNode* target,
@@ -240,30 +264,51 @@ VENOM_API VASTNode* v_ast_new_assignment(VAST* ast,
                                          const VOperator op,
                                          const VType type);
 
+VENOM_API void v_ast_destroy_assignment(VASTNode* assignment);
+
 VENOM_API VASTNode* v_ast_new_unop(VAST* ast,
                                    const VOperator op,
                                    VASTNode* operand);
+
+VENOM_API void v_ast_destroy_unop(VASTNode* unop);
 
 VENOM_API VASTNode* v_ast_new_binop(VAST* ast,
                                     const VOperator op,
                                     VASTNode* left,
                                     VASTNode* right);
 
+VENOM_API void v_ast_destroy_binop(VASTNode* binop);
+
 VENOM_API VASTNode* v_ast_new_ternop(VAST* ast,
                                      VASTNode* condition,
                                      VASTNode* if_expr,
                                      VASTNode* else_expr);
 
+VENOM_API void v_ast_destroy_ternop(VASTNode* ternop);
+
 VENOM_API VASTNode* v_ast_new_decorator(VAST* ast,
                                         const String name);
+
+VENOM_API void v_ast_destroy_decorator(VASTNode* decorator);
 
 VENOM_API VASTNode* v_ast_new_attribute(VAST* ast,
                                         const String name,
                                         const VType type);
 
+VENOM_API void v_ast_destroy_attribute(VASTNode* attribute);
+
 VENOM_API VASTNode* v_ast_new_variable(VAST* ast,
                                        const String name,
                                        const VType type);
+
+VENOM_API void v_ast_destroy_variable(VASTNode* variable);
+
+VENOM_API VASTNode* v_ast_new_argument(VAST* ast,
+                                       const String name,
+                                       const VType type,
+                                       VASTNode* default_value);
+
+VENOM_API void v_ast_destroy_argument(VASTNode* argument);
 
 VENOM_API VASTNode* v_ast_new_literal_int(VAST* ast,
                                           const int64_t value);
@@ -292,10 +337,14 @@ VENOM_API VASTNode* v_ast_new_literal_tuple(VAST* ast,
 VENOM_API VASTNode* v_ast_new_literal_set(VAST* ast,
                                           Vector* elements);
 
+VENOM_API void v_ast_destroy_literal(VASTNode* literal);
+
 VENOM_API VASTNode* v_ast_new_fcall(VAST* ast,
                                     const String name,
                                     Vector* args,
-                                    Vector* kwarg_names,
+                                    Vector* /* Strings */ kwarg_names,
                                     Vector* kwarg_values);
+
+VENOM_API void v_ast_destroy_fcall(VASTNode* fcall);
 
 #endif /* __VENOM_AST */
