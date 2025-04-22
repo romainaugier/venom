@@ -1068,10 +1068,6 @@ bool v_ast_from_tokens(VAST* ast, Vector* tokens)
 
 /* VAST Destruction */
 
-/*
-    TODO: recursive destruction of nodes, for now it leaks
-*/
-
 void v_ast_destroy_node(VASTNode* node)
 {
     if(node == NULL)
