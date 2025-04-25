@@ -6,6 +6,7 @@
 
 #include "libromano/hashmap.h"
 #include "libromano/logger.h"
+#include "libromano/stack_no_alloc.h"
 
 #define PY_LEX_ERROR 0xFFFFFFFF
 #define INDENT_SIZE_UNDEFINED 0xFFFFFFFF
@@ -727,9 +728,17 @@ void v_lexer_token_debug(VToken* token)
      printf("%s: %.*s\n", token_kind_to_string(token->kind), (int)token->length, token->start);
 }
 
+#define MAX_INDENT_DEPTH 128
+
 bool v_lexer_lex(char* buffer, Vector* tokens)
 {
      char* s = buffer;
+
+     uint32_t indent_stack[MAX_INDENT_DEPTH];
+     size_t indent_stack_ptr = 0;
+
+     indent_stack[0] = 0;
+     indent_stack_ptr = 1;
 
      uint32_t indent_size = INDENT_SIZE_UNDEFINED;
      uint32_t indent_level = 0;
@@ -930,6 +939,7 @@ bool v_lexer_lex(char* buffer, Vector* tokens)
                }
 
                uint32_t line_indent = 0;
+               char* indent_start = s;
 
                while(*s != '\0' && *s == ' ')
                {
@@ -938,22 +948,50 @@ bool v_lexer_lex(char* buffer, Vector* tokens)
                     position++;
                }
 
-               if(indent_size == INDENT_SIZE_UNDEFINED || indent_size == 0)
+               if(*s == '\n' || *s == '0' || *s == '#')
                {
-                    indent_size = line_indent;
+                    continue;
                }
 
-               if(line_indent > indent_level)
+               uint32_t current_indent_level = indent_stack[indent_stack_ptr - 1];
+
+               if(line_indent > current_indent_level)
                {
-                    VToken indent_token = {NULL, 0, VTokenKind_Indent, line_indent, position, line};
+                    if(indent_stack_ptr >= MAX_INDENT_DEPTH) 
+                    {
+                         logger_log_error("Indentation Error: Maximum indentation depth exceeded (%d)", MAX_INDENT_DEPTH);
+                         logger_log_error("Line %u, Position %u", line, position - line_indent);
+                         return false;
+                    }
+
+                    indent_stack[indent_stack_ptr] = line_indent;
+                    indent_stack_ptr++;
+
+                    VToken indent_token = {indent_start, line_indent, VTokenKind_Indent, 0, position - line_indent, line};
 
                     vector_push_back(tokens, &indent_token);
                }
-               else if(line_indent < indent_level)
+               else if(line_indent < current_indent_level)
                {
-                    VToken dedent_token = {NULL, 0, VTokenKind_Dedent, line_indent, position, line};
+                    while(indent_stack_ptr > 1 && indent_stack[indent_stack_ptr - 1] > line_indent)
+                    {
+                         indent_stack_ptr--;
 
-                    vector_push_back(tokens, &dedent_token);
+                         VToken dedent_token = {indent_start, 0, VTokenKind_Dedent, 0, position - line_indent, line};
+                         vector_push_back(tokens, &dedent_token);
+
+                         current_indent_level = indent_stack[indent_stack_ptr - 1];
+                    }
+
+                    if(indent_stack[indent_stack_ptr - 1] != line_indent)
+                    {
+                         logger_log_error("Indentation Error: Unindent does not match any outer indentation level");
+                         logger_log_error("Line %u, Position %u (Expected indent %u, got %u)",
+                                        line, position - line_indent,
+                                        indent_stack[indent_stack_ptr - 1],
+                                        line_indent);
+                         return false;
+                    }
                }
 
                indent_level = line_indent;

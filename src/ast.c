@@ -1077,21 +1077,17 @@ VASTNode* v_parse_class_declaration(VParser* parser)
           return NULL;
      }
 
-     VToken* name_token =
-                    v_parser_consume_kind(parser, VTokenKind_Identifier, "Expected class name");
+     VToken* name_token = v_parser_consume_kind(parser,
+                                                VTokenKind_Identifier,
+                                                "Expected class name");
      if(name_token == NULL)
      {
           return NULL;
      }
 
      String class_name = string_newf("%.*s", (int)name_token->length, name_token->start);
-     if(class_name == NULL)
-     {
-          v_parser_set_error(parser, "Failed to allocate class name string");
-          return NULL;
-     }
 
-     Vector* bases = vector_new(2, sizeof(VASTNode*));
+     Vector* bases = NULL;
 
      if(v_parser_match_delimiter(parser, VDelimiter_LParen))
      {
@@ -1104,8 +1100,18 @@ VASTNode* v_parse_class_declaration(VParser* parser)
                     if(base_expr == NULL)
                     {
                          string_free(class_name);
-                         vector_free_with_dtor(bases, v_ast_vector_free_callback);
+
+                         if(bases != NULL)
+                         {
+                              vector_free_with_dtor(bases, v_ast_vector_free_callback);
+                         }
+
                          return NULL;
+                    }
+
+                    if(bases == NULL)
+                    {
+                         bases = vector_new(2, sizeof(VASTNode*));
                     }
 
                     vector_push_back(bases, &base_expr);
@@ -1118,7 +1124,12 @@ VASTNode* v_parse_class_declaration(VParser* parser)
                                          "Expected \")\" after base classes"))
           {
                string_free(class_name);
-               vector_free_with_dtor(bases, v_ast_vector_free_callback);
+
+               if(bases != NULL)
+               {
+                    vector_free_with_dtor(bases, v_ast_vector_free_callback);
+               }
+
                return NULL;
           }
      }
@@ -1128,7 +1139,12 @@ VASTNode* v_parse_class_declaration(VParser* parser)
                                     "Expected \":\" after class definition header"))
      {
           string_free(class_name);
-          vector_free_with_dtor(bases, v_ast_vector_free_callback);
+
+          if(bases != NULL)
+          {
+               vector_free_with_dtor(bases, v_ast_vector_free_callback);
+          }
+
           return NULL;
      }
 
@@ -1137,22 +1153,33 @@ VASTNode* v_parse_class_declaration(VParser* parser)
      if(body_node == NULL)
      {
           string_free(class_name);
-          vector_free_with_dtor(bases, v_ast_vector_free_callback);
+
+          if(bases != NULL)
+          {
+               vector_free_with_dtor(bases, v_ast_vector_free_callback);
+          }
+
           return NULL;
      }
 
      if(body_node->type != VASTNodeType_VASTBody)
      {
           string_free(class_name);
-          vector_free_with_dtor(bases, v_ast_vector_free_callback);
+
+          if(bases != NULL)
+          {
+               vector_free_with_dtor(bases, v_ast_vector_free_callback);
+          }
+
           v_ast_destroy_node(body_node);
           v_parser_set_error(parser, "Internal error: Class body parsing did not return VASTBody");
+
           return NULL;
      }
 
      VASTBody* body = VAST_CAST(VASTBody, body_node);
-     Vector* attributes = vector_new(8, sizeof(VASTNode*));
-     Vector* functions = vector_new(8, sizeof(VASTNode*));
+     Vector* attributes = NULL;
+     Vector* functions = NULL;
 
      for(uint32_t i = 0; i < vector_size(body->stmts); ++i)
      {
@@ -1160,6 +1187,11 @@ VASTNode* v_parse_class_declaration(VParser* parser)
 
           if(stmt->type == VASTNodeType_VASTFunction)
           {
+               if(functions == NULL)
+               {
+                    functions = vector_new(8, sizeof(VASTNode*));
+               }
+               
                vector_push_back(functions, &stmt);
           }
           else if(stmt->type == VASTNodeType_VASTAssignment)
@@ -1176,6 +1208,12 @@ VASTNode* v_parse_class_declaration(VParser* parser)
                                                               attr_name,
                                                               assign->type,
                                                               assign->value);
+                    
+                    if(attributes == NULL)
+                    {
+                         attributes = vector_new(8, sizeof(VASTNode*));
+                    }
+
                     vector_push_back(attributes, &attr_node);
 
                     ((VASTAttribute*)attr_node)->initial_value = assign->value;
@@ -1189,10 +1227,22 @@ VASTNode* v_parse_class_declaration(VParser* parser)
                                        "directly in class body (use methods)");
 
                     string_free(class_name);
-                    vector_free_with_dtor(bases, v_ast_vector_free_callback);
                     v_ast_destroy_node(body_node);
-                    vector_free_with_dtor(attributes, v_ast_vector_free_callback);
-                    vector_free_with_dtor(functions, v_ast_vector_free_callback);
+
+                    if(bases != NULL)
+                    {
+                         vector_free_with_dtor(bases, v_ast_vector_free_callback);
+                    }
+
+                    if(attributes != NULL)
+                    {
+                         vector_free_with_dtor(attributes, v_ast_vector_free_callback);
+                    }
+
+                    if(functions != NULL)
+                    {
+                         vector_free_with_dtor(functions, v_ast_vector_free_callback);
+                    }
 
                     return NULL;
                }
@@ -1215,10 +1265,23 @@ VASTNode* v_parse_class_declaration(VParser* parser)
                v_parser_set_error(parser, "Unexpected statement type found directly in class body");
 
                string_free(class_name);
-               vector_free_with_dtor(bases, v_ast_vector_free_callback);
                v_ast_destroy_node(body_node);
-               vector_free_with_dtor(attributes, v_ast_vector_free_callback);
-               vector_free_with_dtor(functions, v_ast_vector_free_callback);
+
+               if(bases != NULL)
+               {
+                    vector_free_with_dtor(bases, v_ast_vector_free_callback);
+               }
+
+               if(attributes != NULL)
+               {
+                    vector_free_with_dtor(attributes, v_ast_vector_free_callback);
+               }
+
+               if(functions != NULL)
+               {
+                    vector_free_with_dtor(functions, v_ast_vector_free_callback);
+               }
+
                return NULL;
           }
      }
@@ -1310,6 +1373,11 @@ VASTNode* v_parse_body(VParser* parser)
           return NULL;
      }
 
+     while(v_parser_match(parser, VTokenKind_Newline))
+     {
+
+     }
+
      if(!v_parser_consume_kind(parser, VTokenKind_Indent, "Expected indent to start block"))
      {
           return NULL;
@@ -1340,14 +1408,24 @@ VASTNode* v_parse_body(VParser* parser)
           vector_push_back(stmts, &stmt);
      }
 
-     /* TODO: add a pass node */
+     if(v_parser_is_at_end(parser) ||
+        v_parser_check(parser, VTokenKind_EOF))
+     {
 
-     if(!v_parser_is_at_end(parser) && !v_parser_check(parser, VTokenKind_EOF) &&
-        !v_parser_consume_kind(parser, VTokenKind_Dedent, "Expected dedent at end of block"))
+     }
+     else if(!v_parser_consume_kind(parser, VTokenKind_Dedent, "Expected dedent at end of block"))
      {
           vector_free_with_dtor(stmts, v_ast_vector_free_callback);
           return NULL;
      }
+     else
+     {
+          v_parser_set_error(parser, "Unexpected token at end of block");
+          vector_free_with_dtor(stmts, v_ast_vector_free_callback);
+          return NULL;
+     }
+
+     /* TODO: add a pass node if block is empty */
 
      return v_ast_new_body(parser->ast, stmts);
 }
@@ -1362,10 +1440,71 @@ VASTNode* v_parse_statement(VParser* parser)
      if(v_parser_check_keyword(parser, VKeyword_If) ||
         v_parser_check_keyword(parser, VKeyword_For) ||
         v_parser_check_keyword(parser, VKeyword_While) ||
-        v_parser_check_keyword(parser, VKeyword_With) || // TODO
-        v_parser_check_keyword(parser, VKeyword_Try))    // TODO
+        v_parser_check_keyword(parser, VKeyword_Class) ||
+        v_parser_check_keyword(parser, VKeyword_Def) ||
+        v_parser_check_keyword(parser, VKeyword_With) || /* TODO */
+        v_parser_check_keyword(parser, VKeyword_Try))    /* TODO */
      {
           return v_parse_compound_statement(parser);
+     }
+     else if(v_parser_check_delimiter(parser, VDelimiter_At))
+     {
+          VASTNode* decorator = v_parse_decorator(parser);
+
+          if(decorator == NULL)
+          {
+               return NULL;
+          }
+
+          if(v_parser_check_keyword(parser, VKeyword_Def))
+          {
+               VASTNode* function = v_parse_function_declaration(parser);
+
+               if(function != NULL)
+               {
+                    VASTFunction* func = VAST_CAST(VASTFunction, function);
+                    VASSERT_TYPE(VASTFunction, func);
+
+                    func->decorators = vector_new(1, sizeof(VASTNode*));
+                    vector_push_back(func->decorators, decorator);
+               }
+               else
+               {
+                    if(decorator != NULL)
+                    {
+                         v_ast_destroy_node(decorator);
+                    }
+               }
+
+               return function;
+          }
+          else if(v_parser_check_keyword(parser, VKeyword_Class))
+          {
+               VASTNode* class = v_parse_class_declaration(parser);
+
+               if(class != NULL)
+               {
+                    VASTClass* cls = VAST_CAST(VASTClass, class);
+                    VASSERT_TYPE(VASTClass, cls);
+
+                    cls->decorators = vector_new(1, sizeof(VASTNode*));
+                    vector_push_back(cls->decorators, decorator);
+               }
+               else
+               {
+                    if(decorator != NULL)
+                    {
+                         v_ast_destroy_node(decorator);
+                    }
+               }
+
+               return class; 
+          }
+          else
+          {
+               v_parser_set_error(parser, "Expecting function or class definition after decorator");
+               return NULL;
+          }
      }
      else
      {
@@ -1387,9 +1526,17 @@ VASTNode* v_parse_statement(VParser* parser)
                return NULL;
           }
 
-          if(!v_parser_match(parser, VTokenKind_EOF) &&
-             !v_parser_match(parser, VTokenKind_Newline) && !v_parser_is_at_end(parser) &&
-             !v_parser_check(parser, VTokenKind_Dedent))
+          if(v_parser_is_at_end(parser) || v_parser_check(parser, VTokenKind_EOF))
+          {
+          }
+          else if(v_parser_check(parser, VTokenKind_Newline))
+          {
+               v_parser_advance(parser);
+          }
+          else if(v_parser_check(parser, VTokenKind_Dedent))
+          {
+          }
+          else
           {
                v_parser_set_error(parser,
                                   "Expected newline or end of block after simple statement");
@@ -3324,10 +3471,25 @@ void v_ast_destroy_class(VASTNode* class)
 
      string_free(cls->name);
 
-     vector_free_with_dtor(cls->bases, v_ast_vector_free_callback);
-     vector_free_with_dtor(cls->attributes, v_ast_vector_free_callback);
-     vector_free_with_dtor(cls->functions, v_ast_vector_free_callback);
-     vector_free_with_dtor(cls->decorators, v_ast_vector_free_callback);
+     if(cls->bases != NULL) 
+     {
+          vector_free_with_dtor(cls->bases, v_ast_vector_free_callback);
+     }
+
+     if(cls->attributes != NULL) 
+     {
+          vector_free_with_dtor(cls->attributes, v_ast_vector_free_callback);
+     }
+
+     if(cls->functions != NULL) 
+     {
+          vector_free_with_dtor(cls->functions, v_ast_vector_free_callback);
+     }
+
+     if(cls->decorators != NULL) 
+     {
+          vector_free_with_dtor(cls->decorators, v_ast_vector_free_callback);
+     }
 }
 
 VASTNode* v_ast_new_function(VAST* ast,
@@ -3358,8 +3520,16 @@ void v_ast_destroy_function(VASTNode* function)
      string_free(func->name);
 
      v_ast_destroy_node((VASTNode*)func->body);
-     vector_free_with_dtor(func->params, v_ast_vector_free_callback);
-     vector_free_with_dtor(func->decorators, v_ast_vector_free_callback);
+
+     if(func->params != NULL)
+     {
+          vector_free_with_dtor(func->params, v_ast_vector_free_callback);
+     }
+
+     if(func->decorators != NULL)
+     {
+          vector_free_with_dtor(func->decorators, v_ast_vector_free_callback);
+     }
 }
 
 VASTNode* v_ast_new_body(VAST* ast, Vector* stmts)
