@@ -1,0 +1,53 @@
+# Basic settings
+Language: Cpp
+IndentWidth: 5
+ColumnLimit: 100
+
+# Never break after return type - explicitly set to None
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+
+# Star placement with the type, not the variable
+PointerAlignment: Left
+
+# Brace settings
+BreakBeforeBraces: Allman
+
+# Parameter settings - force one per line
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+ExperimentalAutoDetectBinPacking: false
+
+# Align parameters and arguments under the opening parenthesis
+AlignAfterOpenBracket: Align
+
+# Force breaking after opening parenthesis
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakOpenParenthesis: 0
+PenaltyExcessCharacter: 10000
+
+# Prevent breaking after return type with extreme penalties
+PenaltyReturnTypeOnItsOwnLine: 1000000
+
+# Spacing
+SpaceBeforeParens: Never
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceInEmptyParentheses: false
+SpacesInContainerLiterals: false
+
+# Other formatting
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: Never
+
+# Setting alignment for parameters and arguments
+ContinuationIndentWidth: 15
+
+# Switch case indentation
+IndentCaseLabels: true
+IndentCaseBlocks: true

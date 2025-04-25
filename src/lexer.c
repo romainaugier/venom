@@ -11,1056 +11,963 @@
 #define INDENT_SIZE_UNDEFINED 0xFFFFFFFF
 
 const char* token_kind_names[] = {
-    "Identifier",
-    "Keyword",
-    "Literal",
-    "Operator",
-    "Delimiter",
-    "Newline",
-    "Indent",
-    "Dedent",
+               "Identifier",
+               "Keyword",
+               "Literal",
+               "Operator",
+               "Delimiter",
+               "Newline",
+               "Indent",
+               "Dedent",
 };
 
-const char* token_kind_to_string(uint32_t token_type) 
+const char* token_kind_to_string(uint32_t token_type)
 {
-    if(token_type >= 8) 
-    {
-        return "Unknown";
-    }
+     if(token_type >= 8)
+     {
+          return "Unknown";
+     }
 
-    return token_kind_names[token_type];
+     return token_kind_names[token_type];
 }
 
 const char* v_keyword_to_string(VKeyword keyword)
 {
-    switch(keyword)
-    {
-        case VKeyword_False:
-            return "false";
-        case VKeyword_Await:
-            return "await";
-        case VKeyword_Else:
-            return "else";
-        case VKeyword_Import:
-            return "import";
-        case VKeyword_Pass:
-            return "pass";
-        case VKeyword_None:
-            return "none";
-        case VKeyword_Break:
-            return "break";
-        case VKeyword_Except:
-            return "except";
-        case VKeyword_In:
-            return "in";
-        case VKeyword_Raise:
-            return "raise";
-        case VKeyword_True:
-            return "true";
-        case VKeyword_Class:
-            return "class";
-        case VKeyword_Finally:
-            return "finally";
-        case VKeyword_Is:
-            return "is";
-        case VKeyword_Return:
-            return "return";
-        case VKeyword_And:
-            return "and";
-        case VKeyword_Continue:
-            return "continue";
-        case VKeyword_For:
-            return "for";
-        case VKeyword_Lambda:
-            return "lambda";
-        case VKeyword_Try:
-            return "try";
-        case VKeyword_As:
-            return "as";
-        case VKeyword_Def:
-            return "def";
-        case VKeyword_From:
-            return "from";
-        case VKeyword_Nonlocal:
-            return "nonlocal";
-        case VKeyword_While:
-            return "while";
-        case VKeyword_Assert:
-            return "assert";
-        case VKeyword_Del:
-            return "del";
-        case VKeyword_Global:
-            return "global";
-        case VKeyword_Not:
-            return "not";
-        case VKeyword_With:
-            return "with";
-        case VKeyword_Async:
-            return "async";
-        case VKeyword_Elif:
-            return "elif";
-        case VKeyword_If:
-            return "if";
-        case VKeyword_Or:
-            return "or";
-        case VKeyword_Yield:
-            return "yield";
-        case VKeyword_Unknown:
-            return "unknown";
-        default:
-            return "unknown";
-    }
+     switch(keyword)
+     {
+          case VKeyword_False:
+               return "false";
+          case VKeyword_Await:
+               return "await";
+          case VKeyword_Else:
+               return "else";
+          case VKeyword_Import:
+               return "import";
+          case VKeyword_Pass:
+               return "pass";
+          case VKeyword_None:
+               return "none";
+          case VKeyword_Break:
+               return "break";
+          case VKeyword_Except:
+               return "except";
+          case VKeyword_In:
+               return "in";
+          case VKeyword_Raise:
+               return "raise";
+          case VKeyword_True:
+               return "true";
+          case VKeyword_Class:
+               return "class";
+          case VKeyword_Finally:
+               return "finally";
+          case VKeyword_Is:
+               return "is";
+          case VKeyword_Return:
+               return "return";
+          case VKeyword_And:
+               return "and";
+          case VKeyword_Continue:
+               return "continue";
+          case VKeyword_For:
+               return "for";
+          case VKeyword_Lambda:
+               return "lambda";
+          case VKeyword_Try:
+               return "try";
+          case VKeyword_As:
+               return "as";
+          case VKeyword_Def:
+               return "def";
+          case VKeyword_From:
+               return "from";
+          case VKeyword_Nonlocal:
+               return "nonlocal";
+          case VKeyword_While:
+               return "while";
+          case VKeyword_Assert:
+               return "assert";
+          case VKeyword_Del:
+               return "del";
+          case VKeyword_Global:
+               return "global";
+          case VKeyword_Not:
+               return "not";
+          case VKeyword_With:
+               return "with";
+          case VKeyword_Async:
+               return "async";
+          case VKeyword_Elif:
+               return "elif";
+          case VKeyword_If:
+               return "if";
+          case VKeyword_Or:
+               return "or";
+          case VKeyword_Yield:
+               return "yield";
+          case VKeyword_Unknown:
+               return "unknown";
+          default:
+               return "unknown";
+     }
 }
 
 const char* v_operator_to_string(VOperator operator)
 {
-    switch(operator)
-    {
-        case VOperator_Addition:
-            return "Addition";
-        case VOperator_Subtraction:
-            return "Subtraction";
-        case VOperator_Multiplication:
-            return "Multiplication";
-        case VOperator_Division:
-            return "Division";
-        case VOperator_Modulus:
-            return "Modulus";
-        case VOperator_Exponentiation:
-            return "Exponentiation";
-        case VOperator_FloorDivision:
-            return "FloorDivision";
-        case VOperator_Assign:
-            return "Assign";
-        case VOperator_AdditionAssign:
-            return "AdditionAssign";
-        case VOperator_SubtractionAssign:
-            return "SubtractionAssign";
-        case VOperator_MultiplicationAssign:
-            return "MultiplicationAssign";
-        case VOperator_DivisionAssign:
-            return "DivisionAssign";
-        case VOperator_ModulusAssign:
-            return "ModulusAssign";
-        case VOperator_FloorDivisionAssign:
-            return "FloorDivisionAssign";
-        case VOperator_ExponentiationAssign:
-            return "ExponentiationAssign";
-        case VOperator_BitwiseAndAssign:
-            return "BitwiseAndAssign";
-        case VOperator_BitwiseOrAssign:
-            return "BitwiseOrAssign";
-        case VOperator_BitwiseXorAssign:
-            return "BitwiseXorAssign";
-        case VOperator_BitwiseLShiftAssign:
-            return "BitwiseLShiftAssign";
-        case VOperator_BitwiseRShiftAssign:
-            return "BitwiseRShiftAssign";
-        case VOperator_BitwiseAnd:
-            return "BitwiseAnd";
-        case VOperator_BitwiseOr:
-            return "BitwiseOr";
-        case VOperator_BitwiseXor:
-            return "BitwiseXor";
-        case VOperator_BitwiseNot:
-            return "BitwiseNot";
-        case VOperator_BitwiseLShift:
-            return "BitwiseLShift";
-        case VOperator_BitwiseRShift:
-            return "BitwiseRShift";
-        case VOperator_ComparatorEquals:
-            return "ComparatorEquals";
-        case VOperator_ComparatorNotEquals:
-            return "ComparatorNotEquals";
-        case VOperator_ComparatorGreaterThan:
-            return "ComparatorGreaterThan";
-        case VOperator_ComparatorLessThan:
-            return "ComparatorLessThan";
-        case VOperator_ComparatorGreaterEqualsThan:
-            return "ComparatorGreaterEqualsThan";
-        case VOperator_ComparatorLessEqualsThan:
-            return "ComparatorLessEqualsThan";
-        case VOperator_LogicalAnd:
-            return "LogicalAnd";
-        case VOperator_LogicalOr:
-            return "LogicalOr";
-        case VOperator_LogicalNot:
-            return "LogicalNot";
-        case VOperator_IdentityIs:
-            return "IdentityIs";
-        case VOperator_IdentityIsNot:
-            return "IdentityIsNot";
-        case VOperator_MembershipIn:
-            return "MembershipIn";
-        case VOperator_MembershipNotIn:
-            return "MembershipNotIn";
-        case VOperator_Unknown:
-            return "Unknown";
-        default:
-            return "unknown";
-    }
+     switch(operator)
+     {
+          case VOperator_Addition:
+               return "Addition";
+          case VOperator_Subtraction:
+               return "Subtraction";
+          case VOperator_Multiplication:
+               return "Multiplication";
+          case VOperator_Division:
+               return "Division";
+          case VOperator_Modulus:
+               return "Modulus";
+          case VOperator_Exponentiation:
+               return "Exponentiation";
+          case VOperator_FloorDivision:
+               return "FloorDivision";
+          case VOperator_Assign:
+               return "Assign";
+          case VOperator_AdditionAssign:
+               return "AdditionAssign";
+          case VOperator_SubtractionAssign:
+               return "SubtractionAssign";
+          case VOperator_MultiplicationAssign:
+               return "MultiplicationAssign";
+          case VOperator_DivisionAssign:
+               return "DivisionAssign";
+          case VOperator_ModulusAssign:
+               return "ModulusAssign";
+          case VOperator_FloorDivisionAssign:
+               return "FloorDivisionAssign";
+          case VOperator_ExponentiationAssign:
+               return "ExponentiationAssign";
+          case VOperator_BitwiseAndAssign:
+               return "BitwiseAndAssign";
+          case VOperator_BitwiseOrAssign:
+               return "BitwiseOrAssign";
+          case VOperator_BitwiseXorAssign:
+               return "BitwiseXorAssign";
+          case VOperator_BitwiseLShiftAssign:
+               return "BitwiseLShiftAssign";
+          case VOperator_BitwiseRShiftAssign:
+               return "BitwiseRShiftAssign";
+          case VOperator_BitwiseAnd:
+               return "BitwiseAnd";
+          case VOperator_BitwiseOr:
+               return "BitwiseOr";
+          case VOperator_BitwiseXor:
+               return "BitwiseXor";
+          case VOperator_BitwiseNot:
+               return "BitwiseNot";
+          case VOperator_BitwiseLShift:
+               return "BitwiseLShift";
+          case VOperator_BitwiseRShift:
+               return "BitwiseRShift";
+          case VOperator_ComparatorEquals:
+               return "ComparatorEquals";
+          case VOperator_ComparatorNotEquals:
+               return "ComparatorNotEquals";
+          case VOperator_ComparatorGreaterThan:
+               return "ComparatorGreaterThan";
+          case VOperator_ComparatorLessThan:
+               return "ComparatorLessThan";
+          case VOperator_ComparatorGreaterEqualsThan:
+               return "ComparatorGreaterEqualsThan";
+          case VOperator_ComparatorLessEqualsThan:
+               return "ComparatorLessEqualsThan";
+          case VOperator_LogicalAnd:
+               return "LogicalAnd";
+          case VOperator_LogicalOr:
+               return "LogicalOr";
+          case VOperator_LogicalNot:
+               return "LogicalNot";
+          case VOperator_IdentityIs:
+               return "IdentityIs";
+          case VOperator_IdentityIsNot:
+               return "IdentityIsNot";
+          case VOperator_MembershipIn:
+               return "MembershipIn";
+          case VOperator_MembershipNotIn:
+               return "MembershipNotIn";
+          case VOperator_Unknown:
+               return "Unknown";
+          default:
+               return "unknown";
+     }
 }
 
-VENOM_FORCE_INLINE bool is_letter(unsigned int c) 
+VENOM_FORCE_INLINE bool is_letter(unsigned int c)
 {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-VENOM_FORCE_INLINE bool is_digit(unsigned int c) 
+VENOM_FORCE_INLINE bool is_digit(unsigned int c)
 {
-    return c >= '0' && c <= '9';
+     return c >= '0' && c <= '9';
 }
 
-VENOM_FORCE_INLINE bool is_identifier_start(unsigned int c) 
+VENOM_FORCE_INLINE bool is_identifier_start(unsigned int c)
 {
-    return is_letter(c) || c == '_';
+     return is_letter(c) || c == '_';
 }
 
-VENOM_FORCE_INLINE bool is_identifier(unsigned int c) 
+VENOM_FORCE_INLINE bool is_identifier(unsigned int c)
 {
-    return is_letter(c) || is_digit(c) || c == '_';
+     return is_letter(c) || is_digit(c) || c == '_';
 }
 
-VENOM_FORCE_INLINE bool is_delimiter(unsigned int c) 
+VENOM_FORCE_INLINE bool is_delimiter(unsigned int c)
 {
-    return c == '(' || 
-           c == ')' || 
-           c == '[' || 
-           c == ']' || 
-           c == '{' || 
-           c == '}' || 
-           c == ',' || 
-           c == ':' || 
-           c == '.' || 
-           c == ';' || 
-           c == '@' || 
-           c == '-' || 
-           c == '>';
+     return c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == ',' ||
+            c == ':' || c == '.' || c == ';' || c == '@' || c == '-' || c == '>';
 }
 
-VENOM_FORCE_INLINE bool is_operator_start(unsigned int c) 
+VENOM_FORCE_INLINE bool is_operator_start(unsigned int c)
 {
-    return c == '+' || 
-           c == '-' || 
-           c == '*' || 
-           c == '/' || 
-           c == '&' || 
-           c == '|' || 
-           c == '^' || 
-           c == '>' || 
-           c == '<' || 
-           c == '=' || 
-           c == '!' || 
-           c == '%' || 
-           c == 'a' || 
-           c == 'i' || 
-           c == 'n' || 
-           c == 'o';
+     return c == '+' || c == '-' || c == '*' || c == '/' || c == '&' || c == '|' || c == '^' ||
+            c == '>' || c == '<' || c == '=' || c == '!' || c == '%' || c == 'a' || c == 'i' ||
+            c == 'n' || c == 'o';
 }
 
-VENOM_FORCE_INLINE bool is_binary_operator(unsigned int c) 
+VENOM_FORCE_INLINE bool is_binary_operator(unsigned int c)
 {
-    return c == '+' || 
-           c == '-' || 
-           c == '*' || 
-           c == '/' || 
-           c == '&' || 
-           c == '|' || 
-           c == '^' || 
-           c == '>' || 
-           c == '<' || 
-           c == '%';
+     return c == '+' || c == '-' || c == '*' || c == '/' || c == '&' || c == '|' || c == '^' ||
+            c == '>' || c == '<' || c == '%';
 }
 
-VENOM_FORCE_INLINE bool is_unary_operator(unsigned int c) 
+VENOM_FORCE_INLINE bool is_unary_operator(unsigned int c)
 {
-    return c == '!';
+     return c == '!';
 }
 
-VENOM_FORCE_INLINE bool is_assignment_operator(unsigned int c) 
+VENOM_FORCE_INLINE bool is_assignment_operator(unsigned int c)
 {
-    return c == '=';
+     return c == '=';
 }
 
-VENOM_FORCE_INLINE bool is_string_literal_prefix(unsigned int c) 
+VENOM_FORCE_INLINE bool is_string_literal_prefix(unsigned int c)
 {
-    return c == 'r' || 
-           c == 'u' || 
-           c == 'R' || 
-           c == 'U' || 
-           c == 'f' || 
-           c == 'F';
+     return c == 'r' || c == 'u' || c == 'R' || c == 'U' || c == 'f' || c == 'F';
 }
 
-VENOM_FORCE_INLINE bool is_numeric_literal_start(unsigned int c) 
+VENOM_FORCE_INLINE bool is_numeric_literal_start(unsigned int c)
 {
-    return is_digit(c);
+     return is_digit(c);
 }
 
-VENOM_FORCE_INLINE bool is_int_literal_start(unsigned int c) 
+VENOM_FORCE_INLINE bool is_int_literal_start(unsigned int c)
 {
-    return is_digit(c);
+     return is_digit(c);
 }
 
-VENOM_FORCE_INLINE bool is_int_literal(unsigned int c) 
+VENOM_FORCE_INLINE bool is_int_literal(unsigned int c)
 {
-    return is_digit(c);
+     return is_digit(c);
 }
 
-VENOM_FORCE_INLINE bool is_float_literal_start(unsigned int c) 
+VENOM_FORCE_INLINE bool is_float_literal_start(unsigned int c)
 {
-    return is_digit(c);
+     return is_digit(c);
 }
 
-VENOM_FORCE_INLINE bool is_float_literal(unsigned int c) 
+VENOM_FORCE_INLINE bool is_float_literal(unsigned int c)
 {
-    return is_digit(c) || c == '.';
+     return is_digit(c) || c == '.';
 }
 
-VENOM_FORCE_INLINE uint32_t is_logical_operator(char* c) 
+VENOM_FORCE_INLINE uint32_t is_logical_operator(char* c)
 {
-    if(strncmp(c, "or", 2) == 0) 
-    {
-        return 2;
-    } 
-    else if(strncmp(c, "and", 3) == 0 || strncmp(c, "not", 3) == 0) 
-    {
-        return 3;
-    }
+     if(strncmp(c, "or", 2) == 0)
+     {
+          return 2;
+     }
+     else if(strncmp(c, "and", 3) == 0 || strncmp(c, "not", 3) == 0)
+     {
+          return 3;
+     }
 
-    return 0;
+     return 0;
 }
 
-VENOM_FORCE_INLINE uint32_t is_identity_operator(char* c) 
+VENOM_FORCE_INLINE uint32_t is_identity_operator(char* c)
 {
-    if(strncmp(c, "is", 2) == 0) 
-    {
-        return strncmp(c + 2, " not", 4) == 0 ? 6 : 2;
-    }
+     if(strncmp(c, "is", 2) == 0)
+     {
+          return strncmp(c + 2, " not", 4) == 0 ? 6 : 2;
+     }
 
-    return 0;
+     return 0;
 }
 
-VENOM_FORCE_INLINE uint32_t is_membership_operator(char* c) 
+VENOM_FORCE_INLINE uint32_t is_membership_operator(char* c)
 {
-    if(strncmp(c, "in", 2) == 0) 
-    {
-        return 2;
-    } 
-    else if(strncmp(c, "not in", 6) == 0) 
-    {
-        return 6;
-    }
+     if(strncmp(c, "in", 2) == 0)
+     {
+          return 2;
+     }
+     else if(strncmp(c, "not in", 6) == 0)
+     {
+          return 6;
+     }
 
-    return 0;
+     return 0;
 }
 
-VENOM_FORCE_INLINE uint32_t is_operator(char* c) 
+VENOM_FORCE_INLINE uint32_t is_operator(char* c)
 {
-    if(is_binary_operator(*c)) 
-    {
-        uint32_t length = 1;
-        c++;
+     if(is_binary_operator(*c))
+     {
+          uint32_t length = 1;
+          c++;
 
-        while(is_binary_operator(*c) || is_assignment_operator(*c)) 
-        {
-            c++;
-            length++;
-        }
+          while(is_binary_operator(*c) || is_assignment_operator(*c))
+          {
+               c++;
+               length++;
+          }
 
-        return length;
-    } 
-    else if(is_assignment_operator(*c)) 
-    {
-        return 1;
-    } 
-    else if(is_unary_operator(*c)) 
-    {
-        if(is_assignment_operator(*(c + 1))) 
-        {
-            return 2;
-        }
+          return length;
+     }
+     else if(is_assignment_operator(*c))
+     {
+          if(is_assignment_operator(*(c + 1)))
+          {
+               return 2;
+          }
 
-        return PY_LEX_ERROR;
-    }
+          return 1;
+     }
+     else if(is_unary_operator(*c))
+     {
+          if(is_assignment_operator(*(c + 1)))
+          {
+               return 2;
+          }
 
-    return 0;
+          return PY_LEX_ERROR;
+     }
+
+     return 0;
 }
 
-VENOM_FORCE_INLINE uint32_t is_string_literal_start(char* c) 
+VENOM_FORCE_INLINE uint32_t is_string_literal_start(char* c)
 {
-    if(is_string_literal_prefix(*c) && *(c + 1) != '\0') 
-    {
-        if(*(c + 1) == '"' || *(c + 1) == '\'') 
-        {
-            return 2;
-        } 
-        else if(is_string_literal_prefix(*(c + 1))) 
-        {
-            if(*(c + 2) != '\0' && (*(c + 2) == '"' || *(c + 2) == '\'')) 
-            {
-                return 3;
-            } 
-            else 
-            {
-                return 0;
-            }
-        }
+     if(is_string_literal_prefix(*c) && *(c + 1) != '\0')
+     {
+          if(*(c + 1) == '"' || *(c + 1) == '\'')
+          {
+               return 2;
+          }
+          else if(is_string_literal_prefix(*(c + 1)))
+          {
+               if(*(c + 2) != '\0' && (*(c + 2) == '"' || *(c + 2) == '\''))
+               {
+                    return 3;
+               }
+               else
+               {
+                    return 0;
+               }
+          }
 
-        return 0;
-    } 
-    else if(*c == '"' || *c == '\'') 
-    {
-        if(*(c + 1) != '\0' && (*(c + 1) == '"' || *(c + 1) == '\'')) 
-        {
-            if(*(c + 2) != '\0' && (*(c + 2) == '"' || *(c + 2) == '\'')) 
-            {
-                return 3;
-            }
-        }
+          return 0;
+     }
+     else if(*c == '"' || *c == '\'')
+     {
+          if(*(c + 1) != '\0' && (*(c + 1) == '"' || *(c + 1) == '\''))
+          {
+               if(*(c + 2) != '\0' && (*(c + 2) == '"' || *(c + 2) == '\''))
+               {
+                    return 3;
+               }
+          }
 
-        return 1;
-    }
+          return 1;
+     }
 
-    return 0;
+     return 0;
 }
 
-VENOM_FORCE_INLINE uint32_t consume_string_literal(char* c, uint32_t* position, uint32_t* line) 
+VENOM_FORCE_INLINE uint32_t consume_string_literal(char* c, uint32_t* position, uint32_t* line)
 {
-    uint32_t length = 0;
+     uint32_t length = 0;
 
-    while(*c != '\0' && (*c != '"' && *c != '\'')) 
-    {
-        (*position)++;
-        c++;
-        length++;
+     while(*c != '\0' && (*c != '"' && *c != '\''))
+     {
+          (*position)++;
+          c++;
+          length++;
 
-        if(*c == '\n') 
-        {
-            *position = 0;
-            (*line)++;
-        }
-    }
+          if(*c == '\n')
+          {
+               *position = 0;
+               (*line)++;
+          }
+     }
 
-    return length;
+     return length;
 }
 
-VENOM_FORCE_INLINE uint32_t consume_int_literal(char* c) 
+VENOM_FORCE_INLINE uint32_t consume_int_literal(char* c)
 {
-    uint32_t length = 0;
+     uint32_t length = 0;
 
-    while(*c != '\0' && is_digit(*c)) 
-    {
-        c++;
-        length++;
-    }
+     while(*c != '\0' && is_digit(*c))
+     {
+          c++;
+          length++;
+     }
 
-    return length;
+     return length;
 }
 
-VENOM_FORCE_INLINE uint32_t consume_float_literal(char* c) 
+VENOM_FORCE_INLINE uint32_t consume_float_literal(char* c)
 {
-    uint32_t length = 0;
-    bool found_dot = false;
+     uint32_t length = 0;
+     bool found_dot = false;
 
-    while(*c != '\0') 
-    {
-        if(*c == '.') 
-        {
-            if(found_dot) 
-            {
-                break;
-            }
+     while(*c != '\0')
+     {
+          if(*c == '.')
+          {
+               if(found_dot)
+               {
+                    break;
+               }
 
-            found_dot = true;
-            c++;
-            length++;
-        } 
-        else if(is_digit(*c)) 
-        {
-            c++;
-            length++;
-        } 
-        else 
-        {
-            break;
-        }
-    }
+               found_dot = true;
+               c++;
+               length++;
+          }
+          else if(is_digit(*c))
+          {
+               c++;
+               length++;
+          }
+          else
+          {
+               break;
+          }
+     }
 
-    return found_dot ? length : 0;
+     return found_dot ? length : 0;
 }
 
 HashMap* g_keywords_map = NULL;
 HashMap* g_delimiters_map = NULL;
 HashMap* g_operators_map = NULL;
 
-void v_lexer_maps_init() 
+void v_lexer_maps_init()
 {
-    logger_log_debug("Initialiazing Lexer maps");
+     logger_log_debug("Initialiazing Lexer maps");
 
-    if(g_keywords_map == NULL)
-    {
-        g_keywords_map = hashmap_new(256);
-    }
+     if(g_keywords_map == NULL)
+     {
+          g_keywords_map = hashmap_new(256);
+     }
 
-    uint32_t value = (uint32_t)VKeyword_False; 
-    hashmap_insert(g_keywords_map, "False", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Await; 
-    hashmap_insert(g_keywords_map, "await", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Else; 
-    hashmap_insert(g_keywords_map, "else", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Import; 
-    hashmap_insert(g_keywords_map, "import", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Pass; 
-    hashmap_insert(g_keywords_map, "pass", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_None; 
-    hashmap_insert(g_keywords_map, "None", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Break; 
-    hashmap_insert(g_keywords_map, "break", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Except; 
-    hashmap_insert(g_keywords_map, "except", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_In; 
-    hashmap_insert(g_keywords_map, "in", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Raise; 
-    hashmap_insert(g_keywords_map, "raise", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_True; 
-    hashmap_insert(g_keywords_map, "True", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Class; 
-    hashmap_insert(g_keywords_map, "class", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Finally; 
-    hashmap_insert(g_keywords_map, "finally", 7, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Is; 
-    hashmap_insert(g_keywords_map, "is", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Return; 
-    hashmap_insert(g_keywords_map, "return", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_And; 
-    hashmap_insert(g_keywords_map, "and", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Continue; 
-    hashmap_insert(g_keywords_map, "continue", 8, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_For; 
-    hashmap_insert(g_keywords_map, "for", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Lambda; 
-    hashmap_insert(g_keywords_map, "lambda", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Try; 
-    hashmap_insert(g_keywords_map, "try", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_As; 
-    hashmap_insert(g_keywords_map, "as", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Def; 
-    hashmap_insert(g_keywords_map, "def", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_From; 
-    hashmap_insert(g_keywords_map, "from", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Nonlocal; 
-    hashmap_insert(g_keywords_map, "nonlocal", 8, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_While; 
-    hashmap_insert(g_keywords_map, "while", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Assert; 
-    hashmap_insert(g_keywords_map, "assert", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Del; 
-    hashmap_insert(g_keywords_map, "del", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Global; 
-    hashmap_insert(g_keywords_map, "global", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Not; 
-    hashmap_insert(g_keywords_map, "not", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_With; 
-    hashmap_insert(g_keywords_map, "with", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Async; 
-    hashmap_insert(g_keywords_map, "async", 5, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Elif; 
-    hashmap_insert(g_keywords_map, "elif", 4, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_If; 
-    hashmap_insert(g_keywords_map, "if", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Or; 
-    hashmap_insert(g_keywords_map, "or", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VKeyword_Yield; 
-    hashmap_insert(g_keywords_map, "yield", 5, &value, sizeof(uint32_t));
+     uint32_t value = (uint32_t)VKeyword_False;
+     hashmap_insert(g_keywords_map, "False", 5, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Await;
+     hashmap_insert(g_keywords_map, "await", 5, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Else;
+     hashmap_insert(g_keywords_map, "else", 4, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Import;
+     hashmap_insert(g_keywords_map, "import", 6, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Pass;
+     hashmap_insert(g_keywords_map, "pass", 4, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_None;
+     hashmap_insert(g_keywords_map, "None", 4, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Break;
+     hashmap_insert(g_keywords_map, "break", 5, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Except;
+     hashmap_insert(g_keywords_map, "except", 6, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_In;
+     hashmap_insert(g_keywords_map, "in", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Raise;
+     hashmap_insert(g_keywords_map, "raise", 5, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_True;
+     hashmap_insert(g_keywords_map, "True", 4, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Class;
+     hashmap_insert(g_keywords_map, "class", 5, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Finally;
+     hashmap_insert(g_keywords_map, "finally", 7, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Is;
+     hashmap_insert(g_keywords_map, "is", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Return;
+     hashmap_insert(g_keywords_map, "return", 6, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_And;
+     hashmap_insert(g_keywords_map, "and", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Continue;
+     hashmap_insert(g_keywords_map, "continue", 8, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_For;
+     hashmap_insert(g_keywords_map, "for", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Lambda;
+     hashmap_insert(g_keywords_map, "lambda", 6, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Try;
+     hashmap_insert(g_keywords_map, "try", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_As;
+     hashmap_insert(g_keywords_map, "as", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Def;
+     hashmap_insert(g_keywords_map, "def", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_From;
+     hashmap_insert(g_keywords_map, "from", 4, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Nonlocal;
+     hashmap_insert(g_keywords_map, "nonlocal", 8, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_While;
+     hashmap_insert(g_keywords_map, "while", 5, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Assert;
+     hashmap_insert(g_keywords_map, "assert", 6, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Del;
+     hashmap_insert(g_keywords_map, "del", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Global;
+     hashmap_insert(g_keywords_map, "global", 6, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Not;
+     hashmap_insert(g_keywords_map, "not", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_With;
+     hashmap_insert(g_keywords_map, "with", 4, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Async;
+     hashmap_insert(g_keywords_map, "async", 5, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Elif;
+     hashmap_insert(g_keywords_map, "elif", 4, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_If;
+     hashmap_insert(g_keywords_map, "if", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Or;
+     hashmap_insert(g_keywords_map, "or", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VKeyword_Yield;
+     hashmap_insert(g_keywords_map, "yield", 5, &value, sizeof(uint32_t));
 
-    if(g_delimiters_map == NULL)
-    {
-        g_delimiters_map = hashmap_new(256);
-    }
+     if(g_delimiters_map == NULL)
+     {
+          g_delimiters_map = hashmap_new(256);
+     }
 
-    value = VDelimiter_LParen; 
-    hashmap_insert(g_delimiters_map, "(", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_RParen; 
-    hashmap_insert(g_delimiters_map, ")", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_LBracket; 
-    hashmap_insert(g_delimiters_map, "[", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_RBracket; 
-    hashmap_insert(g_delimiters_map, "]", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_LBrace; 
-    hashmap_insert(g_delimiters_map, "{", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_RBrace; 
-    hashmap_insert(g_delimiters_map, "}", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_Comma; 
-    hashmap_insert(g_delimiters_map, ",", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_Colon; 
-    hashmap_insert(g_delimiters_map, ":", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_Dot; 
-    hashmap_insert(g_delimiters_map, ".", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_SemiColon; 
-    hashmap_insert(g_delimiters_map, ";", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_At; 
-    hashmap_insert(g_delimiters_map, "@", 1, &value, sizeof(uint32_t));
-    value = VDelimiter_RightArrow; 
-    hashmap_insert(g_delimiters_map, "->", 2, &value, sizeof(uint32_t));
+     value = VDelimiter_LParen;
+     hashmap_insert(g_delimiters_map, "(", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_RParen;
+     hashmap_insert(g_delimiters_map, ")", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_LBracket;
+     hashmap_insert(g_delimiters_map, "[", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_RBracket;
+     hashmap_insert(g_delimiters_map, "]", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_LBrace;
+     hashmap_insert(g_delimiters_map, "{", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_RBrace;
+     hashmap_insert(g_delimiters_map, "}", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_Comma;
+     hashmap_insert(g_delimiters_map, ",", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_Colon;
+     hashmap_insert(g_delimiters_map, ":", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_Dot;
+     hashmap_insert(g_delimiters_map, ".", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_SemiColon;
+     hashmap_insert(g_delimiters_map, ";", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_At;
+     hashmap_insert(g_delimiters_map, "@", 1, &value, sizeof(uint32_t));
+     value = VDelimiter_RightArrow;
+     hashmap_insert(g_delimiters_map, "->", 2, &value, sizeof(uint32_t));
 
-    if(g_operators_map == NULL)
-    {
-        g_operators_map = hashmap_new(256);
-    }
+     if(g_operators_map == NULL)
+     {
+          g_operators_map = hashmap_new(256);
+     }
 
-    value = (uint32_t)VOperator_Addition; 
-    hashmap_insert(g_operators_map, "+", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_Subtraction; 
-    hashmap_insert(g_operators_map, "-", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_Multiplication; 
-    hashmap_insert(g_operators_map, "*", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_Division; 
-    hashmap_insert(g_operators_map, "/", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_Modulus; 
-    hashmap_insert(g_operators_map, "%", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_Exponentiation; 
-    hashmap_insert(g_operators_map, "**", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_FloorDivision; 
-    hashmap_insert(g_operators_map, "//", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_Assign; 
-    hashmap_insert(g_operators_map, "=", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_AdditionAssign; 
-    hashmap_insert(g_operators_map, "+=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_SubtractionAssign; 
-    hashmap_insert(g_operators_map, "-=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_MultiplicationAssign; 
-    hashmap_insert(g_operators_map, "*=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_DivisionAssign; 
-    hashmap_insert(g_operators_map, "/=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_ModulusAssign; 
-    hashmap_insert(g_operators_map, "%=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_FloorDivisionAssign; 
-    hashmap_insert(g_operators_map, "//=", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_ExponentiationAssign; 
-    hashmap_insert(g_operators_map, "**=", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseAndAssign; 
-    hashmap_insert(g_operators_map, "&=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseOrAssign; 
-    hashmap_insert(g_operators_map, "|=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseXorAssign; 
-    hashmap_insert(g_operators_map, "^=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseLShiftAssign; 
-    hashmap_insert(g_operators_map, "<<=", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseRShiftAssign; 
-    hashmap_insert(g_operators_map, ">>=", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseAnd; 
-    hashmap_insert(g_operators_map, "&", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseOr; 
-    hashmap_insert(g_operators_map, "|", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseXor; 
-    hashmap_insert(g_operators_map, "^", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseNot; 
-    hashmap_insert(g_operators_map, "~", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseLShift; 
-    hashmap_insert(g_operators_map, "<<", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_BitwiseRShift; 
-    hashmap_insert(g_operators_map, ">>", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_ComparatorEquals; 
-    hashmap_insert(g_operators_map, "==", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_ComparatorNotEquals; 
-    hashmap_insert(g_operators_map, "!=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_ComparatorGreaterThan; 
-    hashmap_insert(g_operators_map, ">", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_ComparatorLessThan; 
-    hashmap_insert(g_operators_map, "<", 1, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_ComparatorGreaterEqualsThan; 
-    hashmap_insert(g_operators_map, ">=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_ComparatorLessEqualsThan; 
-    hashmap_insert(g_operators_map, "<=", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_LogicalAnd; 
-    hashmap_insert(g_operators_map, "and", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_LogicalOr; 
-    hashmap_insert(g_operators_map, "or", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_LogicalNot; 
-    hashmap_insert(g_operators_map, "not", 3, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_IdentityIs; 
-    hashmap_insert(g_operators_map, "is", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_IdentityIsNot; 
-    hashmap_insert(g_operators_map, "is not", 6, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_MembershipIn; 
-    hashmap_insert(g_operators_map, "in", 2, &value, sizeof(uint32_t));
-    value = (uint32_t)VOperator_MembershipNotIn; 
-    hashmap_insert(g_operators_map, "not in", 6, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_Addition;
+     hashmap_insert(g_operators_map, "+", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_Subtraction;
+     hashmap_insert(g_operators_map, "-", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_Multiplication;
+     hashmap_insert(g_operators_map, "*", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_Division;
+     hashmap_insert(g_operators_map, "/", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_Modulus;
+     hashmap_insert(g_operators_map, "%", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_Exponentiation;
+     hashmap_insert(g_operators_map, "**", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_FloorDivision;
+     hashmap_insert(g_operators_map, "//", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_Assign;
+     hashmap_insert(g_operators_map, "=", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_AdditionAssign;
+     hashmap_insert(g_operators_map, "+=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_SubtractionAssign;
+     hashmap_insert(g_operators_map, "-=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_MultiplicationAssign;
+     hashmap_insert(g_operators_map, "*=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_DivisionAssign;
+     hashmap_insert(g_operators_map, "/=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_ModulusAssign;
+     hashmap_insert(g_operators_map, "%=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_FloorDivisionAssign;
+     hashmap_insert(g_operators_map, "//=", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_ExponentiationAssign;
+     hashmap_insert(g_operators_map, "**=", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseAndAssign;
+     hashmap_insert(g_operators_map, "&=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseOrAssign;
+     hashmap_insert(g_operators_map, "|=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseXorAssign;
+     hashmap_insert(g_operators_map, "^=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseLShiftAssign;
+     hashmap_insert(g_operators_map, "<<=", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseRShiftAssign;
+     hashmap_insert(g_operators_map, ">>=", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseAnd;
+     hashmap_insert(g_operators_map, "&", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseOr;
+     hashmap_insert(g_operators_map, "|", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseXor;
+     hashmap_insert(g_operators_map, "^", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseNot;
+     hashmap_insert(g_operators_map, "~", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseLShift;
+     hashmap_insert(g_operators_map, "<<", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_BitwiseRShift;
+     hashmap_insert(g_operators_map, ">>", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_ComparatorEquals;
+     hashmap_insert(g_operators_map, "==", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_ComparatorNotEquals;
+     hashmap_insert(g_operators_map, "!=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_ComparatorGreaterThan;
+     hashmap_insert(g_operators_map, ">", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_ComparatorLessThan;
+     hashmap_insert(g_operators_map, "<", 1, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_ComparatorGreaterEqualsThan;
+     hashmap_insert(g_operators_map, ">=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_ComparatorLessEqualsThan;
+     hashmap_insert(g_operators_map, "<=", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_LogicalAnd;
+     hashmap_insert(g_operators_map, "and", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_LogicalOr;
+     hashmap_insert(g_operators_map, "or", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_LogicalNot;
+     hashmap_insert(g_operators_map, "not", 3, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_IdentityIs;
+     hashmap_insert(g_operators_map, "is", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_IdentityIsNot;
+     hashmap_insert(g_operators_map, "is not", 6, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_MembershipIn;
+     hashmap_insert(g_operators_map, "in", 2, &value, sizeof(uint32_t));
+     value = (uint32_t)VOperator_MembershipNotIn;
+     hashmap_insert(g_operators_map, "not in", 6, &value, sizeof(uint32_t));
 }
 
 uint32_t v_lexer_maps_get_keyword(const char* word, const uint32_t word_size)
 {
-    VENOM_ASSERT(g_keywords_map != NULL, "Keywords map has not been initialized");
+     VENOM_ASSERT(g_keywords_map != NULL, "Keywords map has not been initialized");
 
-    void* keyword = hashmap_get(g_keywords_map, (const void*)word, word_size, NULL);
+     void* keyword = hashmap_get(g_keywords_map, (const void*)word, word_size, NULL);
 
-    if(keyword == NULL)
-    {
-        return VKeyword_Unknown;
-    }
+     if(keyword == NULL)
+     {
+          return VKeyword_Unknown;
+     }
 
-    return *((uint32_t*)keyword);
+     return *((uint32_t*)keyword);
 }
 
 uint32_t v_lexer_maps_get_delimiter(const char* word, const uint32_t word_size)
 {
-    VENOM_ASSERT(g_delimiters_map != NULL, "Delimiters map has not been initialized");
+     VENOM_ASSERT(g_delimiters_map != NULL, "Delimiters map has not been initialized");
 
-    void* delimiter = hashmap_get(g_delimiters_map, (const void*)word, word_size, NULL);
+     void* delimiter = hashmap_get(g_delimiters_map, (const void*)word, word_size, NULL);
 
-    if(delimiter == NULL)
-    {
-        return VDelimiter_Unknown;
-    }
+     if(delimiter == NULL)
+     {
+          return VDelimiter_Unknown;
+     }
 
-    return *((uint32_t*)delimiter);
+     return *((uint32_t*)delimiter);
 }
 
 uint32_t v_lexer_maps_get_operator(const char* word, const uint32_t word_size)
 {
-    VENOM_ASSERT(g_operators_map != NULL, "Operators map has not been initialized");
+     VENOM_ASSERT(g_operators_map != NULL, "Operators map has not been initialized");
 
-    void* operator = hashmap_get(g_operators_map, (const void*)word, word_size, NULL);
+     void* operator= hashmap_get(g_operators_map, (const void*)word, word_size, NULL);
 
-    if(operator == NULL)
-    {
-        return VOperator_Unknown;
-    }
+     if(operator== NULL)
+     {
+          return VOperator_Unknown;
+     }
 
-    return *((uint32_t*)operator);
+     return *((uint32_t*)operator);
 }
 
 void v_lexer_maps_release()
 {
-    logger_log_debug("Releasing Lexer maps");
+     logger_log_debug("Releasing Lexer maps");
 
-    if(g_keywords_map != NULL) 
-    {
-        hashmap_free(g_keywords_map);
-        g_keywords_map = NULL;
-    }
+     if(g_keywords_map != NULL)
+     {
+          hashmap_free(g_keywords_map);
+          g_keywords_map = NULL;
+     }
 
-    if(g_delimiters_map != NULL)
-    {
-        hashmap_free(g_delimiters_map);
-        g_delimiters_map = NULL;
-    }
+     if(g_delimiters_map != NULL)
+     {
+          hashmap_free(g_delimiters_map);
+          g_delimiters_map = NULL;
+     }
 
-    if(g_operators_map != NULL)
-    {
-        hashmap_free(g_operators_map);
-        g_operators_map = NULL;
-    }
+     if(g_operators_map != NULL)
+     {
+          hashmap_free(g_operators_map);
+          g_operators_map = NULL;
+     }
 }
 
 void v_lexer_token_debug(VToken* token)
 {
-    printf("%s: %.*s\n", 
-           token_kind_to_string(token->kind),
-           (int)token->length,
-           token->start);
+     printf("%s: %.*s\n", token_kind_to_string(token->kind), (int)token->length, token->start);
 }
 
-bool v_lexer_lex(char* buffer, Vector* tokens) 
+bool v_lexer_lex(char* buffer, Vector* tokens)
 {
-    char* s = buffer;
+     char* s = buffer;
 
-    uint32_t indent_size = INDENT_SIZE_UNDEFINED;
-    uint32_t indent_level = 0;
-    uint32_t position = 1;
-    uint32_t line = 1;
+     uint32_t indent_size = INDENT_SIZE_UNDEFINED;
+     uint32_t indent_level = 0;
+     uint32_t position = 1;
+     uint32_t line = 1;
 
-    while(*s != '\0') 
-    {
-        uint32_t string_literal_prefix = is_string_literal_start(s);
+     while(*s != '\0')
+     {
+          const uint32_t string_literal_prefix = is_string_literal_start(s);
 
-        if(string_literal_prefix != 0) 
-        {
-            s += string_literal_prefix;
-            position += string_literal_prefix;
+          if(string_literal_prefix != 0)
+          {
+               s += string_literal_prefix;
+               position += string_literal_prefix;
 
-            char* start = s;
-            uint32_t length = consume_string_literal(s, &position, &line);
+               char* start = s;
+               uint32_t length = consume_string_literal(s, &position, &line);
 
-            s += length;
+               s += length;
 
-            VToken token = { 
-                start, 
-                length,
-                VTokenKind_Literal,
-                VLiteral_String,
-                position,
-                line
-            };
+               VToken token = {start, length, VTokenKind_Literal, VLiteral_String, position, line};
 
-            vector_push_back(tokens, &token);
+               vector_push_back(tokens, &token);
 
-            while(*s != '\0' && (*s == '"' || *s == '\'')) 
-            {
-                s++;
-                position++;
-            }
-        }
-        else if(is_numeric_literal_start(*s)) 
-        {
-            char* start = s;
-            uint32_t length = consume_float_literal(s);
+               while(*s != '\0' && (*s == '"' || *s == '\''))
+               {
+                    s++;
+                    position++;
+               }
+          }
+          else if(is_numeric_literal_start(*s))
+          {
+               char* start = s;
+               uint32_t length = consume_float_literal(s);
 
-            if(length > 0) 
-            {
-                VToken token = {
-                    start, 
-                    length,
-                    VTokenKind_Literal,
-                    VLiteral_Float,
-                    position,
-                    line
-                };
+               if(length > 0)
+               {
+                    VToken token = {start,
+                                    length,
+                                    VTokenKind_Literal,
+                                    VLiteral_Float,
+                                    position,
+                                    line};
 
-                vector_push_back(tokens, &token);
+                    vector_push_back(tokens, &token);
 
-                s += length;
-                position += length;
-                continue;
-            }
+                    s += length;
+                    position += length;
+                    continue;
+               }
 
-            length = consume_int_literal(s);
+               length = consume_int_literal(s);
 
-            if(length > 0)
-            {
-                VToken token = {
-                    start, 
-                    length,
-                    VTokenKind_Literal,
-                    VLiteral_Integer,
-                    position,
-                    line
-                };
+               if(length > 0)
+               {
+                    VToken token = {start,
+                                    length,
+                                    VTokenKind_Literal,
+                                    VLiteral_Integer,
+                                    position,
+                                    line};
 
-                vector_push_back(tokens, &token);
+                    vector_push_back(tokens, &token);
 
-                s += length;
-                position += length;
-                continue;
-            }
-        }
-        else if(is_identifier_start(*s)) 
-        {
-            char* start = s;
-            uint32_t length = 1;
+                    s += length;
+                    position += length;
+                    continue;
+               }
+          }
+          else if(is_identifier_start(*s))
+          {
+               char* start = s;
+               uint32_t length = 1;
 
-            s++;
-            position++;
+               s++;
+               position++;
 
-            while(*s != '\0' && is_identifier(*s)) 
-            {
-                s++;
-                position++;
-                length++;
-            }
-
-            uint32_t value = v_lexer_maps_get_keyword(start, length);
-
-            if(value != VKeyword_Unknown) 
-            {
-                VToken token = {
-                    start,
-                    length,
-                    VTokenKind_Keyword,
-                    value,
-                    position - length,
-                    line
-                };
-
-                vector_push_back(tokens, &token);
-                continue;
-            }
-
-            value = v_lexer_maps_get_operator(start, length);
-
-            if(value != VOperator_Unknown)
-            {
-                VToken token = {
-                    start,
-                    length,
-                    VTokenKind_Operator,
-                    value,
-                    position - length,
-                    line
-                };
-
-                vector_push_back(tokens, &token);
-                continue;
-            }
-
-            VToken token = {
-                start,
-                length,
-                VTokenKind_Identifier,
-                0,
-                position - length,
-                line
-            };
-
-            vector_push_back(tokens, &token);
-        }
-        else if(is_delimiter(*s)) 
-        {
-            char* start = s;
-            uint32_t length = 1;
-
-            s++;
-            position++;
-
-            if(*start == '-')
-            {
-                while(*s != '\0' && is_delimiter(*s)) 
-                {
+               while(*s != '\0' && is_identifier(*s))
+               {
                     s++;
                     position++;
                     length++;
-                }
-            }
+               }
 
-            uint32_t value = v_lexer_maps_get_delimiter(start, length);
+               uint32_t value = v_lexer_maps_get_keyword(start, length);
 
-            if(value == VDelimiter_Unknown) 
-            {
-                s -= length;
-                position -= length;
-                goto label_is_operator;
-            }
+               if(value != VKeyword_Unknown)
+               {
+                    VToken token = {start,
+                                    length,
+                                    VTokenKind_Keyword,
+                                    value,
+                                    position - length,
+                                    line};
 
-            VToken token = {
-                start,
-                length,
-                VTokenKind_Delimiter,
-                value,
-                position,
-                line
-            };
+                    vector_push_back(tokens, &token);
+                    continue;
+               }
 
-            vector_push_back(tokens, &token);
-        }
-        else if(is_operator_start(*s)) 
-        {
-label_is_operator: ;
-            char* start = s;
-            uint32_t length = is_operator(s);
+               value = v_lexer_maps_get_operator(start, length);
 
-            if(length > 0) 
-            {
-                position += length;
+               if(value != VOperator_Unknown)
+               {
+                    VToken token = {start,
+                                    length,
+                                    VTokenKind_Operator,
+                                    value,
+                                    position - length,
+                                    line};
 
-                uint32_t value = v_lexer_maps_get_operator(start, length);
+                    vector_push_back(tokens, &token);
+                    continue;
+               }
 
-                if(value == VOperator_Unknown || length == PY_LEX_ERROR) 
-                {
-                    logger_log_error("Syntax Error: Invalid operator: %.*s", (int)length, start);
-                    logger_log_error("Line %u, Position %u", line, position);
-                    return false;
-                }
+               VToken token = {start, length, VTokenKind_Identifier, 0, position - length, line};
 
-                VToken token = {
-                    start,
-                    length,
-                    VTokenKind_Operator,
-                    value,
-                    position,
-                    line
-                };
+               vector_push_back(tokens, &token);
+          }
+          else if(is_delimiter(*s))
+          {
+               char* start = s;
+               uint32_t length = 1;
 
-                vector_push_back(tokens, &token);
+               s++;
+               position++;
 
-                s += length;
-                continue;
-            }
-        }
-        else if(*s == '\n') 
-        {
-            VToken token = {
-                NULL, 
-                0,
-                VTokenKind_Newline,
-                0,
-                position,
-                line
-            };
+               if(*start == '-')
+               {
+                    while(*s != '\0' && is_delimiter(*s))
+                    {
+                         s++;
+                         position++;
+                         length++;
+                    }
+               }
 
-            vector_push_back(tokens, &token);
+               uint32_t value = v_lexer_maps_get_delimiter(start, length);
 
-            s++;
+               if(value == VDelimiter_Unknown)
+               {
+                    s -= length;
+                    position -= length;
+                    goto label_is_operator;
+               }
 
-            line++;
-            position = 0;
+               VToken token = {start, length, VTokenKind_Delimiter, value, position, line};
 
-            while(*s != '\0' && *s == '\n') 
-            {
-                VToken newline_token = {
-                    NULL, 
-                    0,
-                    VTokenKind_Newline,
-                    0,
-                    position,
-                    line
-                };
+               vector_push_back(tokens, &token);
+          }
+          else if(is_operator_start(*s))
+          {
+          label_is_operator:;
+               char* start = s;
+               uint32_t length = is_operator(s);
 
-                vector_push_back(tokens, &newline_token);
+               if(length > 0)
+               {
+                    position += length;
 
-                s++;
-                line++;
-            }
+                    uint32_t value = v_lexer_maps_get_operator(start, length);
 
-            uint32_t line_indent = 0;
+                    if(value == VOperator_Unknown || length == PY_LEX_ERROR)
+                    {
+                         logger_log_error("Syntax Error: Invalid operator: %.*s",
+                                          (int)length,
+                                          start);
+                         logger_log_error("Line %u, Position %u", line, position);
+                         return false;
+                    }
 
-            while(*s != '\0' && *s == ' ') 
-            {
-                line_indent++;
-                s++;
-                position++;
-            }
+                    VToken token = {start, length, VTokenKind_Operator, value, position, line};
 
-            if(indent_size == INDENT_SIZE_UNDEFINED || indent_size == 0) 
-            {
-                indent_size = line_indent;
-            }
+                    vector_push_back(tokens, &token);
 
-            if(line_indent > indent_level) 
-            {
-                VToken indent_token = {
-                    NULL,
-                    0,
-                    VTokenKind_Indent,
-                    line_indent,
-                    position,
-                    line
-                };
+                    s += length;
+                    continue;
+               }
+          }
+          else if(*s == '\n')
+          {
+               VToken token = {NULL, 0, VTokenKind_Newline, 0, position, line};
 
-                vector_push_back(tokens, &indent_token);
-            }
-            else if(line_indent < indent_level) 
-            {
-                VToken dedent_token = {
-                    NULL, 
-                    0,
-                    VTokenKind_Dedent,
-                    line_indent,
-                    position,
-                    line
-                };
+               vector_push_back(tokens, &token);
 
-                vector_push_back(tokens, &dedent_token);
-            }
+               s++;
 
-            indent_level = line_indent;
-        }
-        else
-        {
-            s++;
-            position++;
-        }
-    }
+               line++;
+               position = 0;
 
-    return true;
+               while(*s != '\0' && *s == '\n')
+               {
+                    VToken newline_token = {NULL, 0, VTokenKind_Newline, 0, position, line};
+
+                    vector_push_back(tokens, &newline_token);
+
+                    s++;
+                    line++;
+               }
+
+               uint32_t line_indent = 0;
+
+               while(*s != '\0' && *s == ' ')
+               {
+                    line_indent++;
+                    s++;
+                    position++;
+               }
+
+               if(indent_size == INDENT_SIZE_UNDEFINED || indent_size == 0)
+               {
+                    indent_size = line_indent;
+               }
+
+               if(line_indent > indent_level)
+               {
+                    VToken indent_token = {NULL, 0, VTokenKind_Indent, line_indent, position, line};
+
+                    vector_push_back(tokens, &indent_token);
+               }
+               else if(line_indent < indent_level)
+               {
+                    VToken dedent_token = {NULL, 0, VTokenKind_Dedent, line_indent, position, line};
+
+                    vector_push_back(tokens, &dedent_token);
+               }
+
+               indent_level = line_indent;
+          }
+          else
+          {
+               s++;
+               position++;
+          }
+     }
+
+     VToken eof_token = {NULL, 0, VTokenKind_EOF, 0, position, line};
+
+     vector_push_back(tokens, &eof_token);
+
+     return true;
 }

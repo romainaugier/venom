@@ -13,30 +13,36 @@
 
 VENOM_CPP_ENTER
 
-enum VSymType {
-    VSymType_Variable,
-    VSymType_Function,
-    VSymType_Class,
+enum VSymType
+{
+     VSymType_Variable,
+     VSymType_Function,
+     VSymType_Class,
 };
 
-typedef struct {
-    VSymType type;
+typedef struct
+{
+     VSymType type;
 } VSym;
 
-typedef struct {
-    VSymType type;
+typedef struct
+{
+     VSymType type;
 } VSym_Variable;
 
-typedef struct {
-    VSymType type;
+typedef struct
+{
+     VSymType type;
 } VSym_Function;
 
-typedef struct {
-    VSymType type;
+typedef struct
+{
+     VSymType type;
 } VSym_Class;
 
-typedef struct {
-    HashMap* symbols;
+typedef struct
+{
+     HashMap* symbols;
 } VSymTable;
 
 VENOM_CPP_END

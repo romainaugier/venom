@@ -13,19 +13,21 @@ VENOM_CPP_ENTER
 
 /* TODO: add more types */
 
-typedef enum {
-    VType_Unknown,
-    VType_None,
-    VType_Int,
-    VType_Float,
-    VType_Bool,
-    VType_String,
-    VType_Bytes,
-    VType_List,
-    VType_Tuple,
-    VType_Dict,
-    VType_Set,
-    VType_UserClass,
+typedef enum
+{
+     VType_Unknown,
+     VType_None,
+     VType_Int,
+     VType_Float,
+     VType_Bool,
+     VType_String,
+     VType_Bytes,
+     VType_List,
+     VType_Tuple,
+     VType_Dict,
+     VType_Set,
+     VType_UserClass,
+     VType_Object,
 } VType;
 
 VENOM_API VType v_string_to_type(char* start);

@@ -43,12 +43,12 @@ int main(int argc, char** argv)
 
     VAST* ast = v_ast_new();
 
-    if(!v_ast_from_tokens(ast, tokens))
+    if(!v_ast_from_tokens(ast, tokens) || ast->error != NULL)
     {
+        logger_log_error("Error caught while building AST: %s", ast->error);
         v_ast_destroy(ast);
         fs_file_content_free(&content);
         vector_free(tokens);
-        logger_log_error("Error caught while building AST");
         return 1;
     }
 

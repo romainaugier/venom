@@ -9,7 +9,7 @@
 
 #if defined(_MSC_VER)
 #define VENOM_MSVC
-#pragma warning(disable:4711) /* function selected for automatic inline expansion */
+#pragma warning(disable : 4711) /* function selected for automatic inline expansion */
 #define _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS
 #elif defined(__GNUC__)
 #define VENOM_GCC
@@ -36,15 +36,15 @@
 #define VENOM_VERSION_REVISION 0
 #endif /* !defined(VENOM_VERSION_REVISION) */
 
-#define VENOM_VERSION_STR VENOM_STRIFY_MACRO(VENOM_VERSION_MAJOR)"." \
-                              VENOM_STRIFY_MACRO(VENOM_VERSION_MINOR)"." \
-                              VENOM_STRIFY_MACRO(VENOM_VERSION_PATCH)"." \
-                              VENOM_STRIFY_MACRO(VENOM_VERSION_REVISION)
+#define VENOM_VERSION_STR                                                                          \
+     VENOM_STRIFY_MACRO(VENOM_VERSION_MAJOR)                                                       \
+     "." VENOM_STRIFY_MACRO(VENOM_VERSION_MINOR) "." VENOM_STRIFY_MACRO(                           \
+                    VENOM_VERSION_PATCH) "." VENOM_STRIFY_MACRO(VENOM_VERSION_REVISION)
 
-#include <stddef.h>
-#include <stdint.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #if INTPTR_MAX == INT64_MAX || defined(__x86_64__)
 #define VENOM_X64
@@ -91,7 +91,7 @@
 #define VENOM_LIB_ENTRY
 #define VENOM_LIB_EXIT
 #elif defined(VENOM_GCC)
-#define VENOM_FORCE_INLINE inline __attribute__((always_inline)) 
+#define VENOM_FORCE_INLINE inline __attribute__((always_inline))
 #define VENOM_LIB_ENTRY __attribute__((constructor))
 #define VENOM_LIB_EXIT __attribute__((destructor))
 #elif defined(VENOM_CLANG)
@@ -112,21 +112,30 @@
 #define VENOM_FUNCTION __PRETTY_FUNCTION__
 #endif /* VENOM_WIN */
 
-#define CONCAT_(prefix, suffix)     prefix##suffix
-#define CONCAT(prefix, suffix)      CONCAT_(prefix, suffix)
+#define CONCAT_(prefix, suffix) prefix##suffix
+#define CONCAT(prefix, suffix) CONCAT_(prefix, suffix)
 
-#define VENOM_ASSERT(expr, message) if(!(expr)) { fprintf(stderr, "Assertion failed in file %s at line %d: %s", __FILE__, __LINE__, message); abort(); }
+#define VENOM_ASSERT(expr, message)                                                                \
+     if(!(expr))                                                                                   \
+     {                                                                                             \
+          fprintf(stderr,                                                                          \
+                  "Assertion failed in file %s at line %d: %s",                                    \
+                  __FILE__,                                                                        \
+                  __LINE__,                                                                        \
+                  message);                                                                        \
+          abort();                                                                                 \
+     }
 
-#define VENOM_STATIC_ASSERT(expr)        \
-    struct CONCAT(__outscope_assert_, __COUNTER__)      \
-    {                                                   \
-        char                                            \
-        outscope_assert                                 \
-        [2*(expr)-1];                                   \
-                                                        \
-    } CONCAT(__outscope_assert_, __COUNTER__)
+#define VENOM_STATIC_ASSERT(expr)                                                                  \
+     struct CONCAT(__outscope_assert_, __COUNTER__)                                                \
+     {                                                                                             \
+          char outscope_assert[2 * (expr) - 1];                                                    \
+                                                                                                   \
+     } CONCAT(__outscope_assert_, __COUNTER__)
 
-#define VENOM_NOT_IMPLEMENTED fprintf(stderr, "Function " VENOM_FUNCTION " not implemented"); exit(1)
+#define VENOM_NOT_IMPLEMENTED                                                                      \
+     fprintf(stderr, "Function " VENOM_FUNCTION " not implemented");                               \
+     exit(1)
 
 #if defined(VENOM_MSVC)
 #define VENOM_PACKED_STRUCT(__struct__) __pragma(pack(push, 1)) __struct__ __pragma(pack(pop))
@@ -137,11 +146,11 @@
 #endif /* defined(VENOM_MSVC) */
 
 #if defined(VENOM_MSVC)
-#define dump_struct(s) 
+#define dump_struct(s)
 #elif defined(VENOM_CLANG)
 #define dump_struct(s) __builtin_dump_struct(s, printf)
 #elif defined(VENOM_GCC)
-#define dump_struct(s) 
+#define dump_struct(s)
 #endif /* defined(VENOM_MSVC) */
 
 #if defined(DEBUG_BUILD)
@@ -151,19 +160,22 @@
 #endif /* defined(DEBUG_BUILD) */
 
 #if defined(__cplusplus)
-#define VENOM_CPP_ENTER extern "C" {
+#define VENOM_CPP_ENTER                                                                            \
+     extern "C"                                                                                    \
+     {
 #define VENOM_CPP_END }
 #else
 #define VENOM_CPP_ENTER
 #define VENOM_CPP_END
 #endif /* defined(__cplusplus) */
 
-#define VENOM_ATEXIT_REGISTER(__func__, __exit__)                                  \
-        int res_##__func__ = atexit(__func__);                                     \
-        if(res_##__func__ != 0)                                                    \
-        {                                                                          \
-            fprintf(stderr, "Cannot register function \""#__func__"\" in atexit"); \
-            if(__exit__) exit(1);                                                  \
-        }                                                                           
+#define VENOM_ATEXIT_REGISTER(__func__, __exit__)                                                  \
+     int res_##__func__ = atexit(__func__);                                                        \
+     if(res_##__func__ != 0)                                                                       \
+     {                                                                                             \
+          fprintf(stderr, "Cannot register function \"" #__func__ "\" in atexit");                 \
+          if(__exit__)                                                                             \
+               exit(1);                                                                            \
+     }
 
 #endif /* !defined(__VENOM) */
