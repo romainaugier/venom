@@ -10,56 +10,55 @@
 
 int main(int argc, char** argv)
 {
-    VENOM_ATEXIT_REGISTER(logger_release, false);
+     VENOM_ATEXIT_REGISTER(logger_release, false);
 
-    logger_init();
+     logger_init();
 
-    logger_log_info("Starting ast test");
+     logger_log_info("Starting ast test");
 
-    String file_path = string_newf("%s/test1.py", TESTS_DATA_DIR);
+     String file_path = string_newf("%s/test1.py", TESTS_DATA_DIR);
 
-    FileContent content; 
-    
-    if(!fs_file_content_new((char*)file_path, &content))
-    {
-        logger_log_error("Cannot content of file: %s", file_path);
-        string_free(file_path);
-        return 1;
-    }
+     FileContent content;
 
-    string_free(file_path);
+     if(!fs_file_content_new((char*)file_path, &content))
+     {
+          logger_log_error("Cannot content of file: %s", file_path);
+          string_free(file_path);
+          return 1;
+     }
 
-    printf("%.*s\n", (int)content.content_length, content.content);
+     string_free(file_path);
 
-    Vector* tokens = vector_new(128, sizeof(VToken));
+     printf("%.*s\n", (int)content.content_length, content.content);
 
-    if(!v_lexer_lex(content.content, tokens))
-    {
-        fs_file_content_free(&content);
-        vector_free(tokens);
-        logger_log_error("Error caught while lexing");
-        return 1;
-    }
+     Vector* tokens = vector_new(128, sizeof(VToken));
 
-    VAST* ast = v_ast_new();
+     if(!v_lexer_lex(content.content, tokens))
+     {
+          fs_file_content_free(&content);
+          vector_free(tokens);
+          logger_log_error("Error caught while lexing");
+          return 1;
+     }
 
-    if(!v_ast_from_tokens(ast, tokens) || ast->error != NULL)
-    {
-        logger_log_error("Error caught while building AST: %s", ast->error);
-        v_ast_destroy(ast);
-        fs_file_content_free(&content);
-        vector_free(tokens);
-        return 1;
-    }
+     VAST* ast = v_ast_new();
 
-    v_ast_debug(ast);
+     if(!v_ast_from_tokens(ast, tokens) || ast->error != NULL)
+     {
+          logger_log_error("Error caught while building AST: %s", ast->error);
+          v_ast_destroy(ast);
+          fs_file_content_free(&content);
+          vector_free(tokens);
+          return 1;
+     }
 
-    v_ast_destroy(ast);
-    fs_file_content_free(&content);
-    vector_free(tokens);
+     v_ast_debug(ast);
 
-    logger_log_info("Finished ast test");
-    
-    return 0;
+     v_ast_destroy(ast);
+     fs_file_content_free(&content);
+     vector_free(tokens);
+
+     logger_log_info("Finished ast test");
+
+     return 0;
 }
-

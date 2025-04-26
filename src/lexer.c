@@ -957,9 +957,11 @@ bool v_lexer_lex(char* buffer, Vector* tokens)
 
                if(line_indent > current_indent_level)
                {
-                    if(indent_stack_ptr >= MAX_INDENT_DEPTH) 
+                    if(indent_stack_ptr >= MAX_INDENT_DEPTH)
                     {
-                         logger_log_error("Indentation Error: Maximum indentation depth exceeded (%d)", MAX_INDENT_DEPTH);
+                         logger_log_error("Indentation Error: Maximum indentation depth exceeded "
+                                          "(%d)",
+                                          MAX_INDENT_DEPTH);
                          logger_log_error("Line %u, Position %u", line, position - line_indent);
                          return false;
                     }
@@ -967,7 +969,12 @@ bool v_lexer_lex(char* buffer, Vector* tokens)
                     indent_stack[indent_stack_ptr] = line_indent;
                     indent_stack_ptr++;
 
-                    VToken indent_token = {indent_start, line_indent, VTokenKind_Indent, 0, position - line_indent, line};
+                    VToken indent_token = {indent_start,
+                                           line_indent,
+                                           VTokenKind_Indent,
+                                           0,
+                                           position - line_indent,
+                                           line};
 
                     vector_push_back(tokens, &indent_token);
                }
@@ -977,7 +984,12 @@ bool v_lexer_lex(char* buffer, Vector* tokens)
                     {
                          indent_stack_ptr--;
 
-                         VToken dedent_token = {indent_start, 0, VTokenKind_Dedent, 0, position - line_indent, line};
+                         VToken dedent_token = {indent_start,
+                                                0,
+                                                VTokenKind_Dedent,
+                                                0,
+                                                position - line_indent,
+                                                line};
                          vector_push_back(tokens, &dedent_token);
 
                          current_indent_level = indent_stack[indent_stack_ptr - 1];
@@ -985,11 +997,13 @@ bool v_lexer_lex(char* buffer, Vector* tokens)
 
                     if(indent_stack[indent_stack_ptr - 1] != line_indent)
                     {
-                         logger_log_error("Indentation Error: Unindent does not match any outer indentation level");
+                         logger_log_error("Indentation Error: Unindent does not match any outer "
+                                          "indentation level");
                          logger_log_error("Line %u, Position %u (Expected indent %u, got %u)",
-                                        line, position - line_indent,
-                                        indent_stack[indent_stack_ptr - 1],
-                                        line_indent);
+                                          line,
+                                          position - line_indent,
+                                          indent_stack[indent_stack_ptr - 1],
+                                          line_indent);
                          return false;
                     }
                }

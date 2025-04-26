@@ -10,48 +10,47 @@
 
 int main(int argc, char** argv)
 {
-    VENOM_ATEXIT_REGISTER(logger_release, false);
+     VENOM_ATEXIT_REGISTER(logger_release, false);
 
-    logger_init();
+     logger_init();
 
-    logger_log_info("Starting lexer test");
+     logger_log_info("Starting lexer test");
 
-    String file_path = string_newf("%s/test1.py", TESTS_DATA_DIR);
+     String file_path = string_newf("%s/test1.py", TESTS_DATA_DIR);
 
-    FileContent content; 
-    
-    if(!fs_file_content_new((char*)file_path, &content))
-    {
-        logger_log_error("Cannot content of file: %s", file_path);
-        string_free(file_path);
-        return 1;
-    }
+     FileContent content;
 
-    string_free(file_path);
+     if(!fs_file_content_new((char*)file_path, &content))
+     {
+          logger_log_error("Cannot content of file: %s", file_path);
+          string_free(file_path);
+          return 1;
+     }
 
-    printf("%.*s\n", (int)content.content_length, content.content);
+     string_free(file_path);
 
-    Vector* tokens = vector_new(128, sizeof(VToken));
+     printf("%.*s\n", (int)content.content_length, content.content);
 
-    if(!v_lexer_lex(content.content, tokens))
-    {
-        fs_file_content_free(&content);
-        vector_free(tokens);
-        logger_log_error("Error caught while lexing");
-        return 1;
-    }
+     Vector* tokens = vector_new(128, sizeof(VToken));
 
-    for(size_t i = 0; i < vector_size(tokens); i++)
-    {
-        v_lexer_token_debug((VToken*)vector_at(tokens, i));
-    }
+     if(!v_lexer_lex(content.content, tokens))
+     {
+          fs_file_content_free(&content);
+          vector_free(tokens);
+          logger_log_error("Error caught while lexing");
+          return 1;
+     }
 
-    fs_file_content_free(&content);
+     for(size_t i = 0; i < vector_size(tokens); i++)
+     {
+          v_lexer_token_debug((VToken*)vector_at(tokens, i));
+     }
 
-    vector_free(tokens);
+     fs_file_content_free(&content);
 
-    logger_log_info("Finished lexer test");
-    
-    return 0;
+     vector_free(tokens);
+
+     logger_log_info("Finished lexer test");
+
+     return 0;
 }
-

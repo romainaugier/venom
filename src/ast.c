@@ -508,7 +508,9 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
                     VASSERT_TYPE(VASTFCall*, fcall);
 
                     size_t num_args = fcall->args != NULL ? vector_size(fcall->args) : 0;
-                    size_t num_kwargs = fcall->kwargs.names != NULL ? vector_size(fcall->kwargs.names) : 0;
+                    size_t num_kwargs = fcall->kwargs.names != NULL
+                                                       ? vector_size(fcall->kwargs.names)
+                                                       : 0;
 
                     printf("Function Call (%zu args, %zu kwargs)\n", num_args, num_kwargs);
 
@@ -551,7 +553,7 @@ void v_ast_node_debug(VASTNode* node, int indent_level)
                     VASTAttributeAccess* acc = VAST_CAST(VASTAttributeAccess, node);
                     VASSERT_TYPE(VASTAttributeAccess, acc);
 
-                    printf("Attribute Access \"%s\"",
+                    printf("Attribute Access \"%s\"\n",
                            acc->attribute_name != NULL ? acc->attribute_name : "<NULL>");
 
                     print_indent(indent_level + 1);
@@ -673,7 +675,8 @@ typedef struct
 
 VENOM_FORCE_INLINE bool v_parser_is_at_end(VParser* parser)
 {
-     return parser->current >= vector_size(parser->tokens);
+     return parser->current >= vector_size(parser->tokens) || 
+            ((VToken*)vector_at(parser->tokens, parser->current))->kind == VTokenKind_EOF;
 }
 
 VENOM_FORCE_INLINE VToken* v_parser_peek(VParser* parser)
@@ -917,7 +920,7 @@ VASTNode* v_parse_source(VParser* parser)
 
           if(decl == NULL)
           {
-               vector_free(decls);
+               vector_free_with_dtor(decls, v_ast_vector_free_callback);
                return NULL;
           }
 
@@ -1077,9 +1080,8 @@ VASTNode* v_parse_class_declaration(VParser* parser)
           return NULL;
      }
 
-     VToken* name_token = v_parser_consume_kind(parser,
-                                                VTokenKind_Identifier,
-                                                "Expected class name");
+     VToken* name_token =
+                    v_parser_consume_kind(parser, VTokenKind_Identifier, "Expected class name");
      if(name_token == NULL)
      {
           return NULL;
@@ -1191,7 +1193,7 @@ VASTNode* v_parse_class_declaration(VParser* parser)
                {
                     functions = vector_new(8, sizeof(VASTNode*));
                }
-               
+
                vector_push_back(functions, &stmt);
           }
           else if(stmt->type == VASTNodeType_VASTAssignment)
@@ -1208,7 +1210,7 @@ VASTNode* v_parse_class_declaration(VParser* parser)
                                                               attr_name,
                                                               assign->type,
                                                               assign->value);
-                    
+
                     if(attributes == NULL)
                     {
                          attributes = vector_new(8, sizeof(VASTNode*));
@@ -1300,9 +1302,8 @@ VASTNode* v_parse_function_declaration(VParser* parser)
           return NULL;
      }
 
-     VToken* name_token = v_parser_consume_kind(parser,
-                                                VTokenKind_Identifier,
-                                                "Expected function name");
+     VToken* name_token =
+                    v_parser_consume_kind(parser, VTokenKind_Identifier, "Expected function name");
 
      if(name_token == NULL)
      {
@@ -1375,7 +1376,6 @@ VASTNode* v_parse_body(VParser* parser)
 
      while(v_parser_match(parser, VTokenKind_Newline))
      {
-
      }
 
      if(!v_parser_consume_kind(parser, VTokenKind_Indent, "Expected indent to start block"))
@@ -1385,14 +1385,16 @@ VASTNode* v_parse_body(VParser* parser)
 
      Vector* stmts = vector_new(8, sizeof(VASTNode*));
 
-     while(!v_parser_check(parser, VTokenKind_Dedent) && !v_parser_is_at_end(parser))
+     while(!v_parser_check(parser, VTokenKind_Dedent) && 
+           !v_parser_is_at_end(parser))
      {
           while(v_parser_match(parser, VTokenKind_Newline))
           {
                continue;
           }
 
-          if(v_parser_check(parser, VTokenKind_Dedent) || v_parser_is_at_end(parser))
+          if(v_parser_check(parser, VTokenKind_Dedent) || 
+             v_parser_is_at_end(parser))
           {
                break;
           }
@@ -1408,25 +1410,20 @@ VASTNode* v_parse_body(VParser* parser)
           vector_push_back(stmts, &stmt);
      }
 
-     if(v_parser_is_at_end(parser) ||
-        v_parser_check(parser, VTokenKind_EOF))
+     if(v_parser_is_at_end(parser))
      {
+          goto label_exit;
+     }
 
-     }
-     else if(!v_parser_consume_kind(parser, VTokenKind_Dedent, "Expected dedent at end of block"))
+     if(!v_parser_consume_kind(parser, VTokenKind_Dedent, "Expecting dedent at end of block"))
      {
-          vector_free_with_dtor(stmts, v_ast_vector_free_callback);
-          return NULL;
-     }
-     else
-     {
-          v_parser_set_error(parser, "Unexpected token at end of block");
           vector_free_with_dtor(stmts, v_ast_vector_free_callback);
           return NULL;
      }
 
      /* TODO: add a pass node if block is empty */
 
+label_exit:
      return v_ast_new_body(parser->ast, stmts);
 }
 
@@ -1498,7 +1495,7 @@ VASTNode* v_parse_statement(VParser* parser)
                     }
                }
 
-               return class; 
+               return class;
           }
           else
           {
@@ -1526,7 +1523,7 @@ VASTNode* v_parse_statement(VParser* parser)
                return NULL;
           }
 
-          if(v_parser_is_at_end(parser) || v_parser_check(parser, VTokenKind_EOF))
+          if(v_parser_is_at_end(parser))
           {
           }
           else if(v_parser_check(parser, VTokenKind_Newline))
@@ -1598,8 +1595,8 @@ VASTNode* v_parse_simple_statement(VParser* parser)
           return v_parse_continue_statement(parser);
      }
 
-     /* 
-          TODO: Add other simple statement keywords: 
+     /*
+          TODO: Add other simple statement keywords:
           del, assert, global, nonlocal,
           import, from, raise, yield...
      */
@@ -1685,9 +1682,9 @@ VASTNode* v_parse_expression_statement(VParser* parser)
                assign_op = VOperator_BitwiseLShiftAssign;
           else if(v_parser_match_operator(parser, VOperator_BitwiseRShiftAssign))
                assign_op = VOperator_BitwiseRShiftAssign;
-          /* 
-               TODO: Add other augmented assignments or just consume the operator 
-                     specifying it needs to be an assignment operator 
+          /*
+               TODO: Add other augmented assignments or just consume the operator
+                     specifying it needs to be an assignment operator
           */
      }
 
@@ -1783,7 +1780,7 @@ VASTNode* v_parse_if_statement(VParser* parser)
           }
 
           if(elif_body_node->type != VASTNodeType_VASTBody)
-          { 
+          {
                v_parser_set_error(parser, "Internal error while parsing elif block");
                v_ast_destroy_node(elif_condition);
                v_ast_destroy_node(condition);
@@ -1792,13 +1789,11 @@ VASTNode* v_parse_if_statement(VParser* parser)
                return NULL;
           }
 
-          VASTNode* new_elif_if_node = v_ast_new_if(parser->ast,
-                                                    elif_condition,
-                                                    (VASTBody*)elif_body_node,
-                                                    NULL);
+          VASTNode* new_elif_if_node =
+                         v_ast_new_if(parser->ast, elif_condition, (VASTBody*)elif_body_node, NULL);
 
           if(else_node == NULL)
-          { 
+          {
                else_node = new_elif_if_node;
                current_if_else_chain_end = else_node;
           }
@@ -1834,7 +1829,7 @@ VASTNode* v_parse_if_statement(VParser* parser)
           }
 
           if(final_else_body->type != VASTNodeType_VASTBody)
-          { 
+          {
                v_parser_set_error(parser, "Internal error while parsing else block");
                v_ast_destroy_node(condition);
                v_ast_destroy_node(body_node);
@@ -1903,7 +1898,7 @@ VASTNode* v_parse_for_statement(VParser* parser)
      }
 
      if(body_node->type != VASTNodeType_VASTBody)
-     { 
+     {
           v_parser_set_error(parser, "Internal error while parsing for block");
           v_ast_destroy_node(target);
           v_ast_destroy_node(iterable);
@@ -1927,7 +1922,9 @@ VASTNode* v_parse_while_statement(VParser* parser)
           return NULL;
      }
 
-     if(!v_parser_consume_delimiter(parser, VDelimiter_Colon, "Expected \":\" after while condition"))
+     if(!v_parser_consume_delimiter(parser,
+                                    VDelimiter_Colon,
+                                    "Expected \":\" after while condition"))
      {
           v_ast_destroy_node(condition);
           return NULL;
@@ -1942,17 +1939,13 @@ VASTNode* v_parse_while_statement(VParser* parser)
      }
 
      if(body_node->type != VASTNodeType_VASTBody)
-     { 
+     {
           v_parser_set_error(parser, "Internal error while parsing while block");
           v_ast_destroy_node(condition);
           return NULL;
      }
 
-     return v_ast_new_for(parser->ast,
-                          true,
-                          NULL,
-                          condition,
-                          (VASTBody*)body_node);
+     return v_ast_new_for(parser->ast, true, NULL, condition, (VASTBody*)body_node);
 }
 
 VASTNode* v_parse_return_statement(VParser* parser)
@@ -2074,7 +2067,7 @@ VASTNode* v_parse_logical_or(VParser* parser)
      }
 
      while(v_parser_match_keyword(parser, VKeyword_Or))
-     { 
+     {
           VASTNode* right = v_parse_logical_and(parser);
 
           if(right == NULL)
@@ -2135,8 +2128,7 @@ VASTNode* v_parse_comparison(VParser* parser)
 
      if(token->kind == VTokenKind_Operator)
      {
-          VOperator current_op =
-                         (VOperator)token->type;
+          VOperator current_op = (VOperator)token->type;
           if(current_op == VOperator_ComparatorEquals ||
              current_op == VOperator_ComparatorNotEquals ||
              current_op == VOperator_ComparatorLessThan ||
@@ -2174,9 +2166,10 @@ VASTNode* v_parse_comparison(VParser* parser)
           {
                v_parser_advance(parser);
 
-               if(!v_parser_consume_keyword(parser,
-                                            VKeyword_In,
-                                            "Expected \"in\" after \"not\" for \"not in\" operator"))
+               if(!v_parser_consume_keyword(
+                                 parser,
+                                 VKeyword_In,
+                                 "Expected \"in\" after \"not\" for \"not in\" operator"))
                {
                     v_ast_destroy_node(left);
                     return NULL;
@@ -2324,10 +2317,7 @@ VASTNode* v_parse_factor(VParser* parser)
                               VOperator_Modulus,
                               VOperator_FloorDivision};
 
-     return v_parse_binary_op_left_assoc(parser,
-                                         v_parse_unary,
-                                         ops,
-                                         4);
+     return v_parse_binary_op_left_assoc(parser, v_parse_unary, ops, 4);
 }
 
 VASTNode* v_parse_unary(VParser* parser)
@@ -2404,8 +2394,7 @@ VASTNode* v_parse_primary(VParser* parser)
      {
           if(v_parser_check_delimiter(parser, VDelimiter_LParen))
           {
-               node = v_parse_function_call(parser,
-                                            node);
+               node = v_parse_function_call(parser, node);
 
                if(node == NULL)
                {
@@ -2414,8 +2403,7 @@ VASTNode* v_parse_primary(VParser* parser)
           }
           else if(v_parser_check_delimiter(parser, VDelimiter_Dot))
           {
-               node = v_parse_attribute_access(parser,
-                                               node);
+               node = v_parse_attribute_access(parser, node);
 
                if(node == NULL)
                {
@@ -2424,8 +2412,7 @@ VASTNode* v_parse_primary(VParser* parser)
           }
           else if(v_parser_check_delimiter(parser, VDelimiter_LBracket))
           {
-               node = v_parse_subscript(parser,
-                                        node);
+               node = v_parse_subscript(parser, node);
 
                if(node == NULL)
                {
@@ -2525,9 +2512,10 @@ VASTNode* v_parse_atom(VParser* parser)
 
                     node = v_ast_new_literal_tuple(parser->ast, elements);
                }
-               if(!v_parser_consume_delimiter(parser,
-                                              VDelimiter_RParen,
-                                              "Expected \")\" to close parenthesized expression or tuple"))
+               if(!v_parser_consume_delimiter(
+                                 parser,
+                                 VDelimiter_RParen,
+                                 "Expected \")\" to close parenthesized expression or tuple"))
                {
                     if(node->type != VASTNodeType_VASTLiteral ||
                        ((VASTLiteral*)node)->lit_type != VType_Tuple)
@@ -2761,9 +2749,7 @@ VASTNode* v_parse_literal(VParser* parser)
                case VLiteral_Integer:
                     {
                          char* endptr;
-                         long long val = strtoll(token->start,
-                                                 &endptr,
-                                                 0);
+                         long long val = strtoll(token->start, &endptr, 0);
 
                          if(endptr != token->start + token->length)
                          {
@@ -2795,7 +2781,8 @@ VASTNode* v_parse_literal(VParser* parser)
                          String str_val = string_newf("%.*s", (int)token->length, token->start);
 
                          /* TODO: Process escape sequences here */
-                         /* TODO: Handle different string types (bytes, raw, etc.) maybe with different VType enums ? */
+                         /* TODO: Handle different string types (bytes, raw, etc.) maybe with
+                          * different VType enums ? */
 
                          return v_ast_new_literal_string(parser->ast, str_val);
                     }
@@ -2836,7 +2823,7 @@ Vector* v_parse_argument_list(VParser* parser, Vector** out_kwarg_names, Vector*
      bool parsing_kwargs = false;
 
      if(!v_parser_check_delimiter(parser, VDelimiter_RParen))
-     { 
+     {
           do
           {
                if(v_parser_check_delimiter(parser, VDelimiter_RParen))
@@ -2898,7 +2885,6 @@ Vector* v_parse_argument_list(VParser* parser, Vector** out_kwarg_names, Vector*
                     {
                          kwarg_names = vector_new(2, sizeof(String));
                          kwarg_values = vector_new(2, sizeof(VASTNode*));
-
                     }
 
                     vector_push_back(kwarg_names, &name);
@@ -2994,10 +2980,12 @@ VASTNode* v_parse_function_call(VParser* parser, VASTNode* callable_expr)
 
      args = v_parse_argument_list(parser, &kwarg_names, &kwarg_values);
 
-     if(!v_parser_consume_delimiter(parser, VDelimiter_RParen, "Expected \")\" to end function call"))
+     if(!v_parser_consume_delimiter(parser,
+                                    VDelimiter_RParen,
+                                    "Expected \")\" to end function call"))
      {
           v_ast_destroy_node(callable_expr);
-          
+
           if(args != NULL)
           {
                vector_free_with_dtor(args, v_ast_vector_free_callback);
@@ -3043,7 +3031,9 @@ VASTNode* v_parse_attribute_access(VParser* parser, VASTNode* object_expr)
 
 VASTNode* v_parse_subscript(VParser* parser, VASTNode* object_expr)
 {
-     if(!v_parser_consume_delimiter(parser, VDelimiter_LBracket, "Expected \"[\" to start subscript"))
+     if(!v_parser_consume_delimiter(parser,
+                                    VDelimiter_LBracket,
+                                    "Expected \"[\" to start subscript"))
      {
           v_ast_destroy_node(object_expr);
           return NULL;
@@ -3222,9 +3212,8 @@ Vector* v_parse_parameter_list(VParser* parser)
                     return NULL;
                }
 
-               String param_name = string_newf("%.*s",
-                                               (int)param_token->length,
-                                               param_token->start);
+               String param_name =
+                              string_newf("%.*s", (int)param_token->length, param_token->start);
 
                VType param_type = VType_Unknown;
                VASTNode* default_value = NULL;
@@ -3247,7 +3236,7 @@ Vector* v_parse_parameter_list(VParser* parser)
                     default_value = v_parse_expression(parser);
 
                     if(default_value == NULL)
-                    { 
+                    {
                          string_free(param_name);
                          vector_free_with_dtor(params, v_ast_vector_free_callback);
 
@@ -3260,7 +3249,8 @@ Vector* v_parse_parameter_list(VParser* parser)
                     {
                          string_free(param_name);
                          vector_free_with_dtor(params, v_ast_vector_free_callback);
-                         v_parser_set_error(parser, "Non-default argument follows default argument");
+                         v_parser_set_error(parser,
+                                            "Non-default argument follows default argument");
                          return NULL;
                     }
                }
@@ -3270,8 +3260,7 @@ Vector* v_parse_parameter_list(VParser* parser)
                                                          param_type,
                                                          default_value);
 
-               vector_push_back(params,
-                                &param_node);
+               vector_push_back(params, &param_node);
 
                if(!v_parser_match_delimiter(parser, VDelimiter_Comma))
                {
@@ -3471,22 +3460,22 @@ void v_ast_destroy_class(VASTNode* class)
 
      string_free(cls->name);
 
-     if(cls->bases != NULL) 
+     if(cls->bases != NULL)
      {
           vector_free_with_dtor(cls->bases, v_ast_vector_free_callback);
      }
 
-     if(cls->attributes != NULL) 
+     if(cls->attributes != NULL)
      {
           vector_free_with_dtor(cls->attributes, v_ast_vector_free_callback);
      }
 
-     if(cls->functions != NULL) 
+     if(cls->functions != NULL)
      {
           vector_free_with_dtor(cls->functions, v_ast_vector_free_callback);
      }
 
-     if(cls->decorators != NULL) 
+     if(cls->decorators != NULL)
      {
           vector_free_with_dtor(cls->decorators, v_ast_vector_free_callback);
      }

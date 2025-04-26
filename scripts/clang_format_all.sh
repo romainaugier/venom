@@ -13,7 +13,7 @@ ROOT_DIR="$(dirname "$0")/.."
 
 DIRS=(
     "$ROOT_DIR/src"
-    "$ROOT_DIR/include/stdromano"
+    "$ROOT_DIR/include/venom"
     "$ROOT_DIR/tests"
 )
 
