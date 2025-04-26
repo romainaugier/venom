@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
+/* Copyright (c) 2025 - Present Romain Augier */
 /* All rights reserved. */
 
 #pragma once
@@ -283,6 +285,8 @@ typedef struct
 
 /* VAST Functions */
 VENOM_API VAST* v_ast_new();
+VENOM_API void v_ast_node_debug(const VASTNode* node,
+                                const uint32_t indent_level);
 VENOM_API void v_ast_debug(VAST* ast);
 VENOM_API bool v_ast_from_tokens(VAST* ast, Vector* tokens);
 VENOM_API void v_ast_destroy(VAST* ast);

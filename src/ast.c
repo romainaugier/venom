@@ -50,7 +50,8 @@ VENOM_FORCE_INLINE void print_indent(int level)
      }
 }
 
-void v_ast_node_debug(VASTNode* node, int indent_level)
+void v_ast_node_debug(const VASTNode* node,
+                      const uint32_t indent_level)
 {
      if(node == NULL)
      {
