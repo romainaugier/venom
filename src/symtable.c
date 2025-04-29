@@ -83,7 +83,7 @@ void v_symtable_debug(VSymTable* symtable)
         String* sym_name = (String*)key;
         VSym* sym = (VSym*)key;
 
-        printf("Symbol: %s\n", sym_name);
+        printf("Symbol: %s\n", *sym_name);
         printf("  ");
 
         v_sym_debug(sym);
