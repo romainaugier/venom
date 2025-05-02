@@ -370,12 +370,12 @@ void v_ast_node_debug(const VASTNode* node,
                     break;
                }
 
-          case VASTNodeType_VASTVariable:
+          case VASTNodeType_VASTSymbol:
                {
-                    VASTVariable* var = VAST_CAST(VASTVariable, node);
-                    VASSERT_TYPE(VASTVariable*, var);
+                    VASTSymbol* sym = VAST_CAST(VASTSymbol, node);
+                    VASSERT_TYPE(VASTSymbol*, sym);
 
-                    printf("Variable \"%s\" (type: %s)\n", var->name, v_type_to_string(var->type));
+                    printf("Symbol \"%s\" (type: %s)\n", sym->name, v_type_to_string(sym->type));
 
                     break;
                }
@@ -1201,10 +1201,10 @@ VASTNode* v_parse_class_declaration(VParser* parser)
           {
                VASTAssignment* assign = VAST_CAST(VASTAssignment, stmt);
 
-               if(assign->target->type == VASTNodeType_VASTVariable)
+               if(assign->target->type == VASTNodeType_VASTSymbol)
                {
-                    VASTVariable* var_target = VAST_CAST(VASTVariable, assign->target);
-                    VASSERT_TYPE(VASTVariable, var_target);
+                    VASTSymbol* var_target = VAST_CAST(VASTSymbol, assign->target);
+                    VASSERT_TYPE(VASTSymbol, var_target);
 
                     String attr_name = string_copy(var_target->name);
                     VASTNode* attr_node = v_ast_new_attribute(parser->ast,
@@ -1621,7 +1621,7 @@ VASTNode* v_parse_expression_statement(VParser* parser)
 
      if(v_parser_match_delimiter(parser, VDelimiter_Colon))
      {
-          if(expr->type != VASTNodeType_VASTVariable &&
+          if(expr->type != VASTNodeType_VASTSymbol &&
              expr->type != VASTNodeType_VASTAttributeAccess &&
              expr->type != VASTNodeType_VASTSubscript)
           {
@@ -3365,7 +3365,7 @@ void v_ast_destroy_node(VASTNode* node)
           case VASTNodeType_VASTAttribute:
                v_ast_destroy_attribute(node);
                break;
-          case VASTNodeType_VASTVariable:
+          case VASTNodeType_VASTSymbol:
                v_ast_destroy_variable(node);
                break;
           case VASTNodeType_VASTParameter:
@@ -3424,6 +3424,38 @@ VASTNode* v_ast_new_source(VAST* ast, Vector* decls)
      void* addr = arena_push(&ast->data, &source, sizeof(VASTSource));
 
      return (VASTNode*)addr;
+}
+
+VASTNode* v_ast_source_get_entry_point(VASTNode* source)
+{
+     VASTSource* src = VAST_CAST(VASTSource, source);
+
+     if(src == NULL)
+     {
+          return NULL;
+     }
+
+     for(uint32_t i = 0; i < vector_size(src->decls); i++)
+     {
+          VASTNode* node = *(VASTNode**)vector_at(src->decls, i);
+
+          switch (node->type)
+          {
+               case VASTNodeType_VASTClass:
+               case VASTNodeType_VASTFunction:
+                    goto next_iter;
+
+               default:
+                    break;
+          }
+
+          return node;
+
+next_iter:
+          continue;
+     }
+
+     return NULL;
 }
 
 void v_ast_destroy_source(VASTNode* source)
@@ -3754,23 +3786,23 @@ void v_ast_destroy_attribute(VASTNode* attribute)
 
 VASTNode* v_ast_new_variable(VAST* ast, const String name, const VType type)
 {
-     VASTVariable var = {
-                    {VASTNodeType_VASTVariable},
+     VASTSymbol sym = {
+                    {VASTNodeType_VASTSymbol},
                     name,
                     type,
      };
 
-     void* addr = arena_push(&ast->data, &var, sizeof(VASTVariable));
+     void* addr = arena_push(&ast->data, &sym, sizeof(VASTSymbol));
 
      return (VASTNode*)addr;
 }
 
 void v_ast_destroy_variable(VASTNode* variable)
 {
-     VASTVariable* var = VAST_CAST(VASTVariable, variable);
-     VASSERT_TYPE(VASTVariable, var);
+     VASTSymbol* sym = VAST_CAST(VASTSymbol, variable);
+     VASSERT_TYPE(VASTSymbol, sym);
 
-     string_free(var->name);
+     string_free(sym->name);
 }
 
 VASTNode* v_ast_new_argument(VAST* ast,

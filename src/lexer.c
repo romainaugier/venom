@@ -948,7 +948,7 @@ bool v_lexer_lex(char* buffer, Vector* tokens)
                     position++;
                }
 
-               if(*s == '\n' || *s == '0' || *s == '#')
+               if(*s == '\n' || *s == '\0' || *s == '#')
                {
                     continue;
                }
@@ -1009,6 +1009,14 @@ bool v_lexer_lex(char* buffer, Vector* tokens)
                }
 
                indent_level = line_indent;
+          }
+          else if(*s == '#')
+          {
+               while(*s != '\0' && *s != '\n')
+               {
+                    s++;
+                    position++;
+               }
           }
           else
           {

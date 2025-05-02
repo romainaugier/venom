@@ -15,26 +15,44 @@ void v_symtable_new(VSymTable* symtable)
 
     memset(symtable, 0, sizeof(VSymTable));
 
-    symtable->symbols = hashmap_new(128);
+    v_symscope_new(&symtable->module, VSymScopeType_Module, NULL);
+
+    symtable->module.symbols = hashmap_new(128);
+    symtable->module.children = vector_new(128, sizeof(VSymScope));
 }
 
 void v_symtable_destroy(VSymTable* symtable)
 {
     if(symtable != NULL)
     {
-        if(symtable->symbols != NULL)
-        {
-            hashmap_free(symtable->symbols);
-        }
-
-        memset(symtable, 0, sizeof(VSymTable));
+        v_symscope_destroy(&symtable->module);
     }
+}
+
+VSym* v_symtable_resolve(VSymTable* symtable, VSymScope* scope, const char* symbol)
+{
+
 }
 
 /* SymTable Debugging */
 
-void v_sym_debug(VSym* sym)
+VENOM_FORCE_INLINE void print_indent(const uint32_t indent_level)
 {
+    for(uint32_t i = 0; i < indent_level; i++)
+    {
+        printf("  ");
+    }
+}
+
+void v_sym_debug(VSym* sym, const uint32_t indent_level)
+{
+    if(sym == NULL)
+    {
+        return;
+    }
+
+    print_indent(indent_level);
+
     const VSymType type = sym->type;
 
     switch (type)
@@ -59,33 +77,83 @@ void v_sym_debug(VSym* sym)
     }
 }
 
+const char* v_scope_type_to_string(VSymScopeType type)
+{
+    switch(type)
+    {
+        case VSymScopeType_Global:
+            return "Global";
+        case VSymScopeType_Module:
+            return "Module";
+        case VSymScopeType_Class:
+            return "Class";
+        case VSymScopeType_Function:
+            return "Function";
+        case VSymScopeType_Comprehension:
+            return "Comprehension";
+        case VSymScopeType_Lambda:
+            return "Lambda";
+        default:
+            return "Unknown";
+    }
+}
+
+void v_scope_debug(VSymScope* scope, const uint32_t indent_level)
+{
+    if(scope == NULL)
+    {
+        return;
+    }
+
+    print_indent(indent_level);
+
+    printf("%s Scope\n", v_scope_type_to_string(scope->type));
+
+    if(scope->symbols != NULL)
+    {
+        print_indent(indent_level);
+        printf("Symbols:\n");
+
+        HashMapIterator it = 0;
+        void* key;
+        void* value;
+
+        while(hashmap_iterate(scope->symbols, &it, &key, NULL, &value, NULL))
+        {
+            v_sym_debug((VSym*)value, indent_level + 1);
+        }
+    }
+}
+
 void v_symtable_debug(VSymTable* symtable)
 {
-    HashMapIterator it = 0;
+    v_scope_debug(&symtable->module, 0);
+}
 
-    void* key = NULL;
-    uint32_t key_size = 0;
-    void* value = NULL;
-    uint32_t value_size = 0;
+/* VSymScope functions */
 
-    while(hashmap_iterate(symtable->symbols,
-                          &it,
-                          &key,
-                          &key_size,
-                          &value,
-                          &value_size))
+void v_symscope_new(VSymScope* scope, VSymScopeType type, VSymScope* parent)
+{
+    memset(scope, 0, sizeof(VSymScope));
+
+    scope->type = type;
+    scope->parent = parent;
+}
+
+void v_symscope_destroy(VSymScope* scope)
+{
+    if(scope != NULL)
     {
-        if(key == NULL || value == NULL)
+        if(scope->symbols != NULL)
         {
-            continue;
+            hashmap_free(scope->symbols);
         }
 
-        String* sym_name = (String*)key;
-        VSym* sym = (VSym*)key;
+        if(scope->children != NULL)
+        {
+            vector_free_with_dtor(scope->children, v_symscope_destroy);
+        }
 
-        printf("Symbol: %s\n", *sym_name);
-        printf("  ");
-
-        v_sym_debug(sym);
+        memset(scope, 0, sizeof(VSymScope));
     }
 }

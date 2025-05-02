@@ -30,7 +30,7 @@ typedef enum
      VASTNodeType_VASTTernOp,
      VASTNodeType_VASTDecorator,
      VASTNodeType_VASTAttribute,
-     VASTNodeType_VASTVariable,
+     VASTNodeType_VASTSymbol,
      VASTNodeType_VASTParameter,
      VASTNodeType_VASTLiteral,
      VASTNodeType_VASTFCall,
@@ -56,7 +56,7 @@ typedef struct VASTBinOp VASTBinOp;
 typedef struct VASTTernOp VASTTernOp;
 typedef struct VASTDecorator VASTDecorator;
 typedef struct VASTAttribute VASTAttribute;
-typedef struct VASTVariable VASTVariable;
+typedef struct VASTSymbol VASTSymbol;
 typedef struct VASTParameter VASTParameter;
 typedef struct VASTLiteral VASTLiteral;
 typedef struct VASTFCall VASTFCall;
@@ -173,7 +173,7 @@ struct VASTAttribute
      VASTNode* initial_value;
 };
 
-struct VASTVariable
+struct VASTSymbol
 {
      VASTNode base;
      String name;
@@ -294,6 +294,9 @@ VENOM_API void v_ast_destroy_node(VASTNode* node);
 
 /* VASTNodes functions */
 VENOM_API VASTNode* v_ast_new_source(VAST* ast, Vector* decls);
+
+/* Returns NULL if there is no entry point */
+VENOM_API VASTNode* v_ast_source_get_entry_point(VASTNode* source);
 
 VENOM_API void v_ast_destroy_source(VASTNode* source);
 
