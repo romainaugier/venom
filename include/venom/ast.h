@@ -18,6 +18,7 @@ VENOM_CPP_ENTER
 typedef enum
 {
      VASTNodeType_VASTSource,
+     VASTNodeType_VASTImport,
      VASTNodeType_VASTClass,
      VASTNodeType_VASTFunction,
      VASTNodeType_VASTBody,
@@ -44,6 +45,8 @@ typedef enum
 
 typedef struct VASTNode VASTNode;
 typedef struct VASTSource VASTSource;
+typedef struct VASTImport VASTImport;
+typedef struct VASTImportSymbol VASTImportSymbol;
 typedef struct VASTClass VASTClass;
 typedef struct VASTFunction VASTFunction;
 typedef struct VASTBody VASTBody;
@@ -76,6 +79,20 @@ struct VASTSource
 {
      VASTNode base;
      Vector* decls;
+};
+
+struct VASTImportSymbol
+{
+     String name;
+     String alias;
+};
+
+struct VASTImport
+{
+     VASTNode base;
+     String name;
+     String alias;
+     Vector* symbols;
 };
 
 struct VASTClass
@@ -299,6 +316,19 @@ VENOM_API VASTNode* v_ast_new_source(VAST* ast, Vector* decls);
 VENOM_API VASTNode* v_ast_source_get_entry_point(VASTNode* source);
 
 VENOM_API void v_ast_destroy_source(VASTNode* source);
+
+VENOM_API void v_ast_new_import_symbol(VASTImportSymbol* obj,
+                                       const String name,
+                                       const String alias);
+
+VENOM_API void v_ast_destroy_import_symbol(VASTImportSymbol* sym);
+
+VENOM_API VASTNode* v_ast_new_import(VAST* ast,
+                                     const String name,
+                                     const String alias,
+                                     Vector* symbols);
+
+VENOM_API void v_ast_destroy_import(VASTNode* import);
 
 VENOM_API VASTNode* v_ast_new_class(VAST* ast,
                                     const String name,

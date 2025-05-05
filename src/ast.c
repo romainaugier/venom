@@ -15,7 +15,7 @@ VAST* v_ast_new()
 {
      VAST* ast = (VAST*)calloc(1, sizeof(VAST));
 
-     arena_init(&ast->data, 1024);
+     arena_init(&ast->data, 4096);
      ast->root = NULL;
      ast->error = NULL;
 
@@ -50,6 +50,63 @@ VENOM_FORCE_INLINE void print_indent(int level)
      }
 }
 
+const char* v_ast_node_type_to_string(const VASTNodeType type)
+{
+     switch(type)
+     {
+          case VASTNodeType_VASTSource: 
+               return "VASTSource";
+          case VASTNodeType_VASTImport: 
+               return "VASTImport";
+          case VASTNodeType_VASTClass: 
+               return "VASTClass";
+          case VASTNodeType_VASTFunction: 
+               return "VASTFunction";
+          case VASTNodeType_VASTBody: 
+               return "VASTBody";
+          case VASTNodeType_VASTFor: 
+               return "VASTFor";
+          case VASTNodeType_VASTIf: 
+               return "VASTIf";
+          case VASTNodeType_VASTReturn: 
+               return "VASTReturn";
+          case VASTNodeType_VASTAssignment: 
+               return "VASTAssignment";
+          case VASTNodeType_VASTUnOp: 
+               return "VASTUnOp";
+          case VASTNodeType_VASTBinOp: 
+               return "VASTBinOp";
+          case VASTNodeType_VASTTernOp: 
+               return "VASTTernOp";
+          case VASTNodeType_VASTDecorator: 
+               return "VASTDecorator";
+          case VASTNodeType_VASTAttribute: 
+               return "VASTAttribute";
+          case VASTNodeType_VASTSymbol: 
+               return "VASTSymbol";
+          case VASTNodeType_VASTParameter: 
+               return "VASTParameter";
+          case VASTNodeType_VASTLiteral: 
+               return "VASTLiteral";
+          case VASTNodeType_VASTFCall: 
+               return "VASTFCall";
+          case VASTNodeType_VASTAttributeAccess: 
+               return "VASTAttributeAccess";
+          case VASTNodeType_VASTSubscript: 
+               return "VASTSubscript";
+          case VASTNodeType_VASTSlice: 
+               return "VASTSlice";
+          case VASTNodeType_VASTPass: 
+               return "VASTPass";
+          case VASTNodeType_VASTBreak: 
+               return "VASTBreak";
+          case VASTNodeType_VASTContinue: 
+               return "VASTContinue";
+          default:
+               return "Unknown";
+     }
+}
+
 void v_ast_node_debug(const VASTNode* node,
                       const uint32_t indent_level)
 {
@@ -75,6 +132,37 @@ void v_ast_node_debug(const VASTNode* node,
                     {
                          v_ast_node_debug(*(VASTNode**)vector_at(source->decls, i),
                                           indent_level + 1);
+                    }
+
+                    break;
+               }
+
+          case VASTNodeType_VASTImport:
+               {
+                    VASTImport* import = VAST_CAST(VASTImport, node);
+                    VASSERT_TYPE(VASTImport, import);
+
+                    printf("Import \"%s\"\n", import->name);
+
+                    if(import->alias != NULL)
+                    {
+                         print_indent(indent_level + 1);
+                         printf("Alias: %s\n", import->alias);
+                    }
+
+                    if(import->symbols != NULL && vector_size(import->symbols) > 0)
+                    {
+                         print_indent(indent_level + 1);
+                         printf("Symbols (%zu):\n", vector_size(import->symbols));
+
+                         for(uint32_t i = 0; i < vector_size(import->symbols); i++)
+                         {
+                              const String name = ((VASTImportSymbol*)vector_at(import->symbols, i))->name;
+                              const String alias = ((VASTImportSymbol*)vector_at(import->symbols, i))->alias;
+
+                              print_indent(indent_level + 2);
+                              printf("\"%s\" (alias: %s)\n", name, alias == NULL ? "No Alias" : alias);
+                         }
                     }
 
                     break;
@@ -847,6 +935,7 @@ VENOM_FORCE_INLINE VToken* v_parser_consume_keyword(VParser* parser,
 
 VASTNode* v_parse_source(VParser* parser);
 VASTNode* v_parse_declaration(VParser* parser);
+VASTNode* v_parse_import(VParser* parser);
 VASTNode* v_parse_class_declaration(VParser* parser);
 VASTNode* v_parse_function_declaration(VParser* parser);
 VASTNode* v_parse_statement(VParser* parser);
@@ -1018,6 +1107,10 @@ VASTNode* v_parse_declaration(VParser* parser)
      {
           decl = v_parse_function_declaration(parser);
      }
+     else if(v_parser_check_keyword(parser, VKeyword_Import) || v_parser_check_keyword(parser, VKeyword_From))
+     {
+          decl = v_parse_import(parser);
+     }
      else
      {
           if(decorators != NULL)
@@ -1072,6 +1165,106 @@ VASTNode* v_parse_declaration(VParser* parser)
      }
 
      return decl;
+}
+
+VASTNode* v_parse_import(VParser* parser)
+{
+     if(v_parser_match_keyword(parser, VKeyword_Import))
+     {
+          VToken* name_token = v_parser_consume_kind(parser, VTokenKind_Identifier, "Expected module name");
+
+          if(name_token == NULL)
+          {
+               return NULL;
+          }
+
+          String alias = NULL;
+
+          if(v_parser_match_keyword(parser, VKeyword_As))
+          {
+               VToken* alias_token = v_parser_consume_kind(parser, VTokenKind_Identifier, "Expected module alias");
+
+               if(alias_token == NULL)
+               {
+                    return NULL;
+               }
+
+               alias = string_newf("%.*s", alias_token->length, alias_token->start);
+          }
+
+          String name = string_newf("%.*s", name_token->length, name_token->start);
+
+          return v_ast_new_import(parser->ast, name, alias, NULL);
+     }
+     else if(v_parser_match_keyword(parser, VKeyword_From))
+     {
+          VToken* name_token = v_parser_consume_kind(parser, VTokenKind_Identifier, "Expected module name");
+
+          if(name_token == NULL)
+          {
+               return NULL;
+          }
+
+          if(v_parser_consume_keyword(parser, VKeyword_Import, "Expected \"import\"") == NULL)
+          {
+               return NULL;
+          }          
+
+          Vector* symbols = vector_new(4, sizeof(VASTImportSymbol));
+
+          while(true)
+          {
+               if(v_parser_is_at_end(parser) || v_parser_match(parser, VTokenKind_Newline))
+               {
+                    break;
+               }
+
+               VToken* imp_name_token = v_parser_consume_kind(parser, VTokenKind_Identifier, "Expected symbol");
+
+               if(imp_name_token == NULL)
+               {
+                    vector_free_with_dtor(symbols, v_ast_destroy_import_symbol);
+                    return NULL;
+               }
+
+               String imp_alias = NULL;
+
+               if(v_parser_match_keyword(parser, VKeyword_As))
+               {
+                    VToken* imp_alias_token = v_parser_consume_kind(parser, VTokenKind_Identifier, "Expected symbol alias");
+
+                    if(imp_alias_token == NULL)
+                    {
+                         return NULL;
+                    }
+
+                    imp_alias = string_newf("%.*s", imp_alias_token->length, imp_alias_token->start);
+               }
+
+               String imp_name = string_newf("%.*s", imp_name_token->length, imp_name_token->start);
+
+               VASTImportSymbol sym = {
+                    imp_name,
+                    imp_alias,
+               };
+
+               vector_emplace_back(symbols, VASTImportSymbol) = sym;
+
+               if(v_parser_is_at_end(parser) || !v_parser_match_delimiter(parser, VDelimiter_Comma))
+               {
+                    break;
+               }
+          }
+
+          String name = string_newf("%.*s", name_token->length, name_token->start);
+
+          return v_ast_new_import(parser->ast, name, NULL, symbols);
+     }
+     else
+     {
+          v_parser_set_error(parser, "Expected \"import\" or \"from\" keyword");
+          return NULL;
+     }
 }
 
 VASTNode* v_parse_class_declaration(VParser* parser)
@@ -3329,6 +3522,9 @@ void v_ast_destroy_node(VASTNode* node)
           case VASTNodeType_VASTSource:
                v_ast_destroy_source(node);
                break;
+          case VASTNodeType_VASTImport:
+               v_ast_destroy_import(node);
+               break;
           case VASTNodeType_VASTClass:
                v_ast_destroy_class(node);
                break;
@@ -3464,6 +3660,69 @@ void v_ast_destroy_source(VASTNode* source)
      VASSERT_TYPE(VASTSource, src);
 
      vector_free_with_dtor(src->decls, v_ast_vector_free_callback);
+}
+
+void v_ast_new_import_symbol(VASTImportSymbol* obj,
+                             const String name,
+                             const String alias)
+{
+     if(obj != NULL)
+     {
+          obj->name = name;
+          obj->alias = alias;
+     }
+}
+
+void v_ast_destroy_import_symbol(VASTImportSymbol* sym)
+{
+     if(sym != NULL)
+     {
+          if(sym->name != NULL)
+          {
+               string_free(sym->name);
+          }
+
+          if(sym->alias != NULL)
+          {
+               string_free(sym->alias);
+          }
+     }
+}
+
+VASTNode* v_ast_new_import(VAST* ast,
+                           const String name,
+                           const String alias,
+                           Vector* symbols)
+{
+     VASTImport* addr = (VASTImport*)arena_push(&ast->data, NULL, sizeof(VASTImport));
+
+     addr->base.type = VASTNodeType_VASTImport;
+     addr->name = name;
+     addr->alias = alias;
+     addr->symbols = symbols;
+
+     return (VASTNode*)addr;
+}
+
+void v_ast_destroy_import(VASTNode* import)
+{
+     VASTImport* imp = VAST_CAST(VASTImport, import);
+     VASSERT_TYPE(VASTImport, imp);
+
+     if(imp->name != NULL)
+     {
+          string_free(imp->name);
+     }
+
+     if(imp->alias != NULL)
+     {
+          string_free(imp->alias);
+     }
+
+     if(imp->symbols != NULL)
+     {
+          vector_free_with_dtor(imp->symbols, v_ast_destroy_import_symbol);
+     }
 }
 
 VASTNode* v_ast_new_class(VAST* ast,

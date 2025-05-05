@@ -31,7 +31,8 @@ void v_symtable_destroy(VSymTable* symtable)
 
 VSym* v_symtable_resolve(VSymTable* symtable, VSymScope* scope, const char* symbol)
 {
-
+    VENOM_NOT_IMPLEMENTED;
+    return NULL;
 }
 
 /* SymTable Debugging */
