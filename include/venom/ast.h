@@ -10,7 +10,6 @@
 #include "venom/lexer.h"
 #include "venom/type.h"
 
-#include "libromano/arena.h"
 #include "libromano/string.h"
 
 VENOM_CPP_ENTER
@@ -295,7 +294,6 @@ struct VASTContinue
 
 typedef struct
 {
-     Arena data;
      VASTNode* root;
      String error;
 } VAST;
@@ -403,9 +401,9 @@ VENOM_API VASTNode* v_ast_new_attribute(VAST* ast,
 
 VENOM_API void v_ast_destroy_attribute(VASTNode* attribute);
 
-VENOM_API VASTNode* v_ast_new_variable(VAST* ast, const String name, const VType type);
+VENOM_API VASTNode* v_ast_new_symbol(VAST* ast, const String name, const VType type);
 
-VENOM_API void v_ast_destroy_variable(VASTNode* variable);
+VENOM_API void v_ast_destroy_symbol(VASTNode* symbol);
 
 VENOM_API VASTNode* v_ast_new_argument(VAST* ast,
                                        const String name,
@@ -458,7 +456,7 @@ VENOM_API void v_ast_destroy_slice(VASTNode* slice);
 
 VENOM_API VASTNode* v_ast_new_pass(VAST* ast);
 
-VENOM_API void v_ast_destroy_pass(VASTNode* pass_);
+VENOM_API void v_ast_destroy_pass(VASTNode* pass);
 
 VENOM_API VASTNode* v_ast_new_break(VAST* ast);
 

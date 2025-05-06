@@ -15,7 +15,6 @@ VAST* v_ast_new()
 {
      VAST* ast = (VAST*)calloc(1, sizeof(VAST));
 
-     arena_init(&ast->data, 4096);
      ast->root = NULL;
      ast->error = NULL;
 
@@ -3005,7 +3004,7 @@ VASTNode* v_parse_variable(VParser* parser)
 
      String name = string_newf("%.*s", (int)token->length, token->start);
 
-     return v_ast_new_variable(parser->ast, name, VType_Unknown);
+     return v_ast_new_symbol(parser->ast, name, VType_Unknown);
 }
 
 Vector* v_parse_argument_list(VParser* parser, Vector** out_kwarg_names, Vector** out_kwarg_values)
@@ -3562,7 +3561,7 @@ void v_ast_destroy_node(VASTNode* node)
                v_ast_destroy_attribute(node);
                break;
           case VASTNodeType_VASTSymbol:
-               v_ast_destroy_variable(node);
+               v_ast_destroy_symbol(node);
                break;
           case VASTNodeType_VASTParameter:
                v_ast_destroy_argument(node);
@@ -3602,8 +3601,6 @@ void v_ast_destroy(VAST* ast)
 
           v_ast_destroy_node(ast->root);
 
-          arena_destroy(&ast->data);
-
           free(ast);
 
           ast = NULL;
@@ -3615,11 +3612,12 @@ void v_ast_destroy(VAST* ast)
 
 VASTNode* v_ast_new_source(VAST* ast, Vector* decls)
 {
-     VASTSource source = {{VASTNodeType_VASTSource}, decls};
+     VASTSource* source = (VASTSource*)calloc(1, sizeof(VASTSource));
 
-     void* addr = arena_push(&ast->data, &source, sizeof(VASTSource));
+     source->base.type = VASTNodeType_VASTSource;
+     source->decls = decls;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)source;
 }
 
 VASTNode* v_ast_source_get_entry_point(VASTNode* source)
@@ -3660,6 +3658,8 @@ void v_ast_destroy_source(VASTNode* source)
      VASSERT_TYPE(VASTSource, src);
 
      vector_free_with_dtor(src->decls, v_ast_vector_free_callback);
+
+     free(source);
 }
 
 void v_ast_new_import_symbol(VASTImportSymbol* obj,
@@ -3694,14 +3694,14 @@ VASTNode* v_ast_new_import(VAST* ast,
                            const String alias,
                            Vector* symbols)
 {
-     VASTImport* addr = (VASTImport*)arena_push(&ast->data, NULL, sizeof(VASTImport));
+     VASTImport* import = (VASTImport*)calloc(1, sizeof(VASTImport));
 
-     addr->base.type = VASTNodeType_VASTImport;
-     addr->name = name;
-     addr->alias = alias;
-     addr->symbols = symbols;
+     import->base.type = VASTNodeType_VASTImport;
+     import->name = name;
+     import->alias = alias;
+     import->symbols = symbols;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)import;
 }
 
 void v_ast_destroy_import(VASTNode* import)
@@ -3723,6 +3723,8 @@ void v_ast_destroy_import(VASTNode* import)
      {
           vector_free_with_dtor(imp->symbols, v_ast_destroy_import_symbol);
      }
+
+     free(import);
 }
 
 VASTNode* v_ast_new_class(VAST* ast,
@@ -3731,18 +3733,16 @@ VASTNode* v_ast_new_class(VAST* ast,
                           Vector* attributes,
                           Vector* functions)
 {
-     VASTClass class_node = {
-                    {VASTNodeType_VASTClass},
-                    name,
-                    bases,
-                    attributes,
-                    functions,
-                    NULL,
-     };
+     VASTClass* class = (VASTClass*)calloc(1, sizeof(VASTClass));
 
-     void* addr = arena_push(&ast->data, &class_node, sizeof(VASTClass));
+     class->base.type = VASTNodeType_VASTClass;
+     class->name = name;
+     class->bases = bases;
+     class->attributes = attributes;
+     class->functions = functions;
+     class->decorators = NULL;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)class;
 }
 
 void v_ast_destroy_class(VASTNode* class)
@@ -3771,6 +3771,8 @@ void v_ast_destroy_class(VASTNode* class)
      {
           vector_free_with_dtor(cls->decorators, v_ast_vector_free_callback);
      }
+
+     free(class);
 }
 
 VASTNode* v_ast_new_function(VAST* ast,
@@ -3779,18 +3781,16 @@ VASTNode* v_ast_new_function(VAST* ast,
                              VType return_type,
                              VASTBody* body)
 {
-     VASTFunction func = {
-                    {VASTNodeType_VASTFunction},
-                    name,
-                    params,
-                    body,
-                    return_type,
-                    NULL,
-     };
+     VASTFunction* function = (VASTFunction*)calloc(1, sizeof(VASTFunction));
 
-     void* addr = arena_push(&ast->data, &func, sizeof(VASTFunction));
+     function->base.type = VASTNodeType_VASTFunction;
+     function->name = name;
+     function->params = params;
+     function->body = body;
+     function->return_type = return_type;
+     function->decorators = NULL;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)function;
 }
 
 void v_ast_destroy_function(VASTNode* function)
@@ -3811,18 +3811,18 @@ void v_ast_destroy_function(VASTNode* function)
      {
           vector_free_with_dtor(func->decorators, v_ast_vector_free_callback);
      }
+
+     free(function);
 }
 
 VASTNode* v_ast_new_body(VAST* ast, Vector* stmts)
 {
-     VASTBody body = {
-                    {VASTNodeType_VASTBody},
-                    stmts,
-     };
+     VASTBody* body = (VASTBody*)calloc(1, sizeof(VASTBody));
+     
+     body->base.type = VASTNodeType_VASTBody;
+     body->stmts = stmts;
 
-     void* addr = arena_push(&ast->data, &body, sizeof(VASTBody));
-
-     return (VASTNode*)addr;
+     return (VASTNode*)body;
 }
 
 void v_ast_destroy_body(VASTNode* body)
@@ -3831,21 +3831,21 @@ void v_ast_destroy_body(VASTNode* body)
      VASSERT_TYPE(VASTBody, b);
 
      vector_free_with_dtor(b->stmts, v_ast_vector_free_callback);
+
+     free(body);
 }
 
 VASTNode* v_ast_new_for(VAST* ast, bool is_while, VASTNode* target, VASTNode* cond, VASTBody* body)
 {
-     VASTFor for_loop = {
-                    {VASTNodeType_VASTFor},
-                    is_while,
-                    target,
-                    cond,
-                    body,
-     };
+     VASTFor* for_loop = (VASTFor*)calloc(1, sizeof(VASTFor));
 
-     void* addr = arena_push(&ast->data, &for_loop, sizeof(VASTFor));
+     for_loop->base.type = VASTNodeType_VASTFor;
+     for_loop->is_while = is_while;
+     for_loop->target = target;
+     for_loop->cond = cond;
+     for_loop->body = body;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)for_loop;
 }
 
 void v_ast_destroy_for(VASTNode* for_)
@@ -3856,20 +3856,20 @@ void v_ast_destroy_for(VASTNode* for_)
      v_ast_destroy_node(f->target);
      v_ast_destroy_node(f->cond);
      v_ast_destroy_node((VASTNode*)f->body);
+
+     free(for_);
 }
 
 VASTNode* v_ast_new_if(VAST* ast, VASTNode* condition, VASTBody* body, VASTNode* else_node)
 {
-     VASTIf if_ = {
-                    {VASTNodeType_VASTIf},
-                    condition,
-                    body,
-                    else_node,
-     };
+     VASTIf* if_ = (VASTIf*)calloc(1, sizeof(VASTIf));
 
-     void* addr = arena_push(&ast->data, &if_, sizeof(VASTIf));
+     if_->base.type = VASTNodeType_VASTIf;
+     if_->condition = condition;
+     if_->body = body;
+     if_->else_node = else_node;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)if_;
 }
 
 void v_ast_destroy_if(VASTNode* if_)
@@ -3880,18 +3880,18 @@ void v_ast_destroy_if(VASTNode* if_)
      v_ast_destroy_node(i->condition);
      v_ast_destroy_node((VASTNode*)i->body);
      v_ast_destroy_node(i->else_node);
+
+     free(if_);
 }
 
 VASTNode* v_ast_new_return(VAST* ast, VASTNode* value)
 {
-     VASTReturn ret = {
-                    {VASTNodeType_VASTReturn},
-                    value,
-     };
+     VASTReturn* ret = (VASTReturn*)calloc(1, sizeof(VASTReturn));
 
-     void* addr = arena_push(&ast->data, &ret, sizeof(VASTReturn));
+     ret->base.type = VASTNodeType_VASTReturn;
+     ret->value = value;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)ret;
 }
 
 void v_ast_destroy_return(VASTNode* ret)
@@ -3900,6 +3900,8 @@ void v_ast_destroy_return(VASTNode* ret)
      VASSERT_TYPE(VASTReturn, r);
 
      v_ast_destroy_node(r->value);
+
+     free(ret);
 }
 
 VASTNode* v_ast_new_assignment(VAST* ast,
@@ -3908,17 +3910,15 @@ VASTNode* v_ast_new_assignment(VAST* ast,
                                const VOperator op,
                                const VType type)
 {
-     VASTAssignment assignment = {
-                    {VASTNodeType_VASTAssignment},
-                    target,
-                    value,
-                    op,
-                    type,
-     };
+     VASTAssignment* assignment = (VASTAssignment*)calloc(1, sizeof(VASTAssignment));
 
-     void* addr = arena_push(&ast->data, &assignment, sizeof(VASTAssignment));
+     assignment->base.type = VASTNodeType_VASTAssignment;
+     assignment->target = target;
+     assignment->value = value;
+     assignment->op = op;
+     assignment->type = type;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)assignment;
 }
 
 void v_ast_destroy_assignment(VASTNode* assignment)
@@ -3928,19 +3928,19 @@ void v_ast_destroy_assignment(VASTNode* assignment)
 
      v_ast_destroy_node(assign->target);
      v_ast_destroy_node(assign->value);
+
+     free(assignment);
 }
 
 VASTNode* v_ast_new_unop(VAST* ast, const VOperator op, VASTNode* operand)
 {
-     VASTUnOp unop = {
-                    {VASTNodeType_VASTUnOp},
-                    op,
-                    operand,
-     };
+     VASTUnOp* unop = (VASTUnOp*)calloc(1, sizeof(VASTUnOp));
 
-     void* addr = arena_push(&ast->data, &unop, sizeof(VASTUnOp));
+     unop->base.type = VASTNodeType_VASTUnOp;
+     unop->op = op;
+     unop->operand = operand;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)unop;
 }
 
 void v_ast_destroy_unop(VASTNode* unop)
@@ -3949,20 +3949,20 @@ void v_ast_destroy_unop(VASTNode* unop)
      VASSERT_TYPE(VASTUnOp, op);
 
      v_ast_destroy_node(op->operand);
+
+     free(unop);
 }
 
 VASTNode* v_ast_new_binop(VAST* ast, const VOperator op, VASTNode* left, VASTNode* right)
 {
-     VASTBinOp binop = {
-                    {VASTNodeType_VASTBinOp},
-                    op,
-                    left,
-                    right,
-     };
+     VASTBinOp* binop = (VASTBinOp*)calloc(1, sizeof(VASTBinOp));
 
-     void* addr = arena_push(&ast->data, &binop, sizeof(VASTBinOp));
+     binop->base.type = VASTNodeType_VASTBinOp;
+     binop->op = op;
+     binop->left = left;
+     binop->right = right;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)binop;
 }
 
 void v_ast_destroy_binop(VASTNode* binop)
@@ -3972,20 +3972,20 @@ void v_ast_destroy_binop(VASTNode* binop)
 
      v_ast_destroy_node(op->left);
      v_ast_destroy_node(op->right);
+
+     free(binop);
 }
 
 VASTNode* v_ast_new_ternop(VAST* ast, VASTNode* condition, VASTNode* if_expr, VASTNode* else_expr)
 {
-     VASTTernOp ternop = {
-                    {VASTNodeType_VASTTernOp},
-                    condition,
-                    if_expr,
-                    else_expr,
-     };
+     VASTTernOp* ternop = (VASTTernOp*)calloc(1, sizeof(VASTTernOp));
 
-     void* addr = arena_push(&ast->data, &ternop, sizeof(VASTTernOp));
+     ternop->base.type = VASTNodeType_VASTTernOp;
+     ternop->condition = condition;
+     ternop->if_expr = if_expr;
+     ternop->else_expr = else_expr;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)ternop;
 }
 
 void v_ast_destroy_ternop(VASTNode* ternop)
@@ -3996,18 +3996,18 @@ void v_ast_destroy_ternop(VASTNode* ternop)
      v_ast_destroy_node(op->condition);
      v_ast_destroy_node(op->if_expr);
      v_ast_destroy_node(op->else_expr);
+
+     free(ternop);
 }
 
 VASTNode* v_ast_new_decorator(VAST* ast, const String name)
 {
-     VASTDecorator decorator = {
-                    {VASTNodeType_VASTDecorator},
-                    name,
-     };
+     VASTDecorator* decorator = (VASTDecorator*)calloc(1, sizeof(VASTDecorator));
 
-     void* addr = arena_push(&ast->data, &decorator, sizeof(VASTDecorator));
+     decorator->base.type = VASTNodeType_VASTDecorator;
+     decorator->name = name;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)decorator;
 }
 
 void v_ast_destroy_decorator(VASTNode* decorator)
@@ -4016,6 +4016,8 @@ void v_ast_destroy_decorator(VASTNode* decorator)
      VASSERT_TYPE(VASTDecorator, dec);
 
      string_free(dec->name);
+
+     free(decorator);
 }
 
 VASTNode* v_ast_new_attribute(VAST* ast,
@@ -4023,16 +4025,14 @@ VASTNode* v_ast_new_attribute(VAST* ast,
                               const VType type,
                               VASTNode* initial_value)
 {
-     VASTAttribute attribute = {
-                    {VASTNodeType_VASTAttribute},
-                    name,
-                    type,
-                    initial_value,
-     };
+     VASTAttribute* attribute = (VASTAttribute*)calloc(1, sizeof(VASTAttribute));
 
-     void* addr = arena_push(&ast->data, &attribute, sizeof(VASTAttribute));
+     attribute->base.type = VASTNodeType_VASTAttribute;
+     attribute->name = name;
+     attribute->type = type;
+     attribute->initial_value = initial_value;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)attribute;
 }
 
 void v_ast_destroy_attribute(VASTNode* attribute)
@@ -4041,27 +4041,29 @@ void v_ast_destroy_attribute(VASTNode* attribute)
      VASSERT_TYPE(VASTAttribute, attr);
 
      string_free(attr->name);
+
+     free(attribute);
 }
 
-VASTNode* v_ast_new_variable(VAST* ast, const String name, const VType type)
+VASTNode* v_ast_new_symbol(VAST* ast, const String name, const VType type)
 {
-     VASTSymbol sym = {
-                    {VASTNodeType_VASTSymbol},
-                    name,
-                    type,
-     };
+     VASTSymbol* symbol = (VASTSymbol*)calloc(1, sizeof(VASTSymbol));
 
-     void* addr = arena_push(&ast->data, &sym, sizeof(VASTSymbol));
+     symbol->base.type = VASTNodeType_VASTSymbol;
+     symbol->name = name;
+     symbol->type = type;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)symbol;
 }
 
-void v_ast_destroy_variable(VASTNode* variable)
+void v_ast_destroy_symbol(VASTNode* symbol)
 {
-     VASTSymbol* sym = VAST_CAST(VASTSymbol, variable);
+     VASTSymbol* sym = VAST_CAST(VASTSymbol, symbol);
      VASSERT_TYPE(VASTSymbol, sym);
 
      string_free(sym->name);
+
+     free(symbol);
 }
 
 VASTNode* v_ast_new_argument(VAST* ast,
@@ -4069,16 +4071,14 @@ VASTNode* v_ast_new_argument(VAST* ast,
                              const VType type,
                              VASTNode* default_value)
 {
-     VASTParameter arg = {
-                    {VASTNodeType_VASTParameter},
-                    name,
-                    type,
-                    default_value,
-     };
+     VASTParameter* parameter = (VASTParameter*)calloc(1, sizeof(VASTParameter));
+                    
+     parameter->base.type = VASTNodeType_VASTParameter;
+     parameter->name = name;
+     parameter->type = type;
+     parameter->default_value = default_value;
 
-     void* addr = arena_push(&ast->data, &arg, sizeof(VASTParameter));
-
-     return (VASTNode*)addr;
+     return (VASTNode*)parameter;
 }
 
 void v_ast_destroy_argument(VASTNode* argument)
@@ -4089,105 +4089,107 @@ void v_ast_destroy_argument(VASTNode* argument)
      string_free(arg->name);
 
      v_ast_destroy_node(arg->default_value);
+
+     free(argument);
 }
 
 VASTNode* v_ast_new_literal_int(VAST* ast, const int64_t value)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_Int;
-     lit.value.int_val = value;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_Int;
+     literal->value.int_val = value;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 VASTNode* v_ast_new_literal_float(VAST* ast, const double value)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_Float;
-     lit.value.float_val = value;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_Float;
+     literal->value.float_val = value;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 VASTNode* v_ast_new_literal_string(VAST* ast, const String value)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_String;
-     lit.value.str_val = value;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_String;
+     literal->value.str_val = value;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 VASTNode* v_ast_new_literal_bool(VAST* ast, const bool value)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_Bool;
-     lit.value.bool_val = value;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_Bool;
+     literal->value.bool_val = value;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 VASTNode* v_ast_new_literal_none(VAST* ast)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_None;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_None;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 VASTNode* v_ast_new_literal_list(VAST* ast, Vector* elements)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_List;
-     lit.value.list_val.elements = elements;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_List;
+     literal->value.list_val.elements = elements;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 VASTNode* v_ast_new_literal_dict(VAST* ast, Vector* keys, Vector* values)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_Dict;
-     lit.value.dict_val.keys = keys;
-     lit.value.dict_val.values = values;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_Dict;
+     literal->value.dict_val.keys = keys;
+     literal->value.dict_val.values = values;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 VASTNode* v_ast_new_literal_tuple(VAST* ast, Vector* elements)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_Tuple;
-     lit.value.tuple_val.elements = elements;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_Tuple;
+     literal->value.tuple_val.elements = elements;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 VASTNode* v_ast_new_literal_set(VAST* ast, Vector* elements)
 {
-     VASTLiteral lit = {{VASTNodeType_VASTLiteral}};
-     lit.lit_type = VType_Set;
-     lit.value.set_val.elements = elements;
+     VASTLiteral* literal = (VASTLiteral*)calloc(1, sizeof(VASTLiteral));
 
-     void* addr = arena_push(&ast->data, &lit, sizeof(VASTLiteral));
+     literal->base.type = VASTNodeType_VASTLiteral;
+     literal->lit_type = VType_Set;
+     literal->value.set_val.elements = elements;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)literal;
 }
 
 void v_ast_destroy_literal(VASTNode* literal)
@@ -4214,6 +4216,8 @@ void v_ast_destroy_literal(VASTNode* literal)
                vector_free_with_dtor(lit->value.set_val.elements, v_ast_vector_free_callback);
                break;
      }
+
+     free(literal);
 }
 
 VASTNode* v_ast_new_fcall(VAST* ast,
@@ -4222,17 +4226,15 @@ VASTNode* v_ast_new_fcall(VAST* ast,
                           Vector* kwarg_names,
                           Vector* kwarg_values)
 {
-     VASTFCall fcall = {{VASTNodeType_VASTFCall},
-                        callable,
-                        args,
-                        {
-                                       kwarg_names,
-                                       kwarg_values,
-                        }};
+     VASTFCall* fcall = (VASTFCall*)calloc(1, sizeof(VASTFCall));
 
-     void* addr = arena_push(&ast->data, &fcall, sizeof(VASTFCall));
+     fcall->base.type = VASTNodeType_VASTFCall;
+     fcall->callable = callable;
+     fcall->args = args;
+     fcall->kwargs.names = kwarg_names;
+     fcall->kwargs.values = kwarg_values;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)fcall;
 }
 
 void v_ast_destroy_fcall(VASTNode* fcall)
@@ -4245,19 +4247,19 @@ void v_ast_destroy_fcall(VASTNode* fcall)
      vector_free_with_dtor(f->args, v_ast_vector_free_callback);
      vector_free_with_dtor(f->kwargs.names, v_ast_vector_free_destroy_string);
      vector_free_with_dtor(f->kwargs.values, v_ast_vector_free_callback);
+
+     free(fcall);
 }
 
 VASTNode* v_ast_new_attribute_access(VAST* ast, VASTNode* object, const String attribute_name)
 {
-     VASTAttributeAccess access = {
-                    {VASTNodeType_VASTAttributeAccess},
-                    object,
-                    attribute_name,
-     };
+     VASTAttributeAccess* access = (VASTAttributeAccess*)calloc(1, sizeof(VASTAttributeAccess));
 
-     void* addr = arena_push(&ast->data, &access, sizeof(VASTAttributeAccess));
+     access->base.type = VASTNodeType_VASTAttributeAccess;
+     access->object = object;
+     access->attribute_name = attribute_name;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)access;
 }
 
 void v_ast_destroy_attribute_access(VASTNode* attributeaccess)
@@ -4271,19 +4273,19 @@ void v_ast_destroy_attribute_access(VASTNode* attributeaccess)
      {
           string_free(access->attribute_name);
      }
+
+     free(attributeaccess);
 }
 
 VASTNode* v_ast_new_subscript(VAST* ast, VASTNode* value, VASTNode* slice)
 {
-     VASTSubscript sub = {
-                    {VASTNodeType_VASTSubscript},
-                    value,
-                    slice,
-     };
+     VASTSubscript* subscript = (VASTSubscript*)calloc(1, sizeof(VASTSubscript));
 
-     void* addr = arena_push(&ast->data, &sub, sizeof(VASTSubscript));
+     subscript->base.type = VASTNodeType_VASTSubscript;
+     subscript->value = value;
+     subscript->slice = slice;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)subscript;
 }
 
 void v_ast_destroy_subscript(VASTNode* subscript)
@@ -4293,20 +4295,20 @@ void v_ast_destroy_subscript(VASTNode* subscript)
 
      v_ast_destroy_node(sub->value);
      v_ast_destroy_node(sub->slice);
+
+     free(subscript);
 }
 
 VASTNode* v_ast_new_slice(VAST* ast, VASTNode* start, VASTNode* stop, VASTNode* step)
 {
-     VASTSlice slice = {
-                    {VASTNodeType_VASTSlice},
-                    start,
-                    stop,
-                    step,
-     };
+     VASTSlice* slice = (VASTSlice*)calloc(1, sizeof(VASTSlice));
 
-     void* addr = arena_push(&ast->data, &slice, sizeof(VASTSlice));
+     slice->base.type = VASTNodeType_VASTSlice;
+     slice->start = start;
+     slice->stop = stop;
+     slice->step = step;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)slice;
 }
 
 void v_ast_destroy_slice(VASTNode* slice)
@@ -4317,46 +4319,51 @@ void v_ast_destroy_slice(VASTNode* slice)
      v_ast_destroy_node(slc->start);
      v_ast_destroy_node(slc->stop);
      v_ast_destroy_node(slc->step);
+
+     free(slice);
 }
 
 VASTNode* v_ast_new_pass(VAST* ast)
 {
-     VASTPass new_pass = {{VASTNodeType_VASTPass}};
+     VASTPass* pass = (VASTPass*)calloc(1, sizeof(VASTPass));
 
-     void* addr = arena_push(&ast->data, &new_pass, sizeof(VASTPass));
+     pass->base.type = VASTNodeType_VASTPass;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)pass;
 }
 
-void v_ast_destroy_pass(VASTNode* pass_)
+void v_ast_destroy_pass(VASTNode* pass)
 {
+     free(pass);
      return;
 }
 
 VASTNode* v_ast_new_break(VAST* ast)
 {
-     VASTBreak new_break = {{VASTNodeType_VASTBreak}};
+     VASTBreak* break_ = (VASTBreak*)calloc(1, sizeof(VASTBreak));
 
-     void* addr = arena_push(&ast->data, &new_break, sizeof(VASTBreak));
+     break_->base.type = VASTNodeType_VASTBreak;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)break_;
 }
 
 void v_ast_destroy_break(VASTNode* break_)
 {
+     free(break_);
      return;
 }
 
 VASTNode* v_ast_new_continue(VAST* ast)
 {
-     VASTContinue new_continue = {{VASTNodeType_VASTContinue}};
+     VASTContinue* continue_ = (VASTContinue*)calloc(1, sizeof(VASTContinue));
 
-     void* addr = arena_push(&ast->data, &new_continue, sizeof(VASTContinue));
+     continue_->base.type = VASTNodeType_VASTContinue;
 
-     return (VASTNode*)addr;
+     return (VASTNode*)continue_;
 }
 
 void v_ast_destroy_continue(VASTNode* continue_)
 {
+     free(continue_);
      return;
 }
