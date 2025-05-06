@@ -88,7 +88,11 @@ VENOM_API void v_symtable_new(VSymTable* symtable);
 
 VENOM_API void v_symtable_destroy(VSymTable* symtable);
 
-VENOM_API VSym* v_symtable_resolve(VSymTable* symtable, VSymScope* scope, const char* symbol);
+VENOM_API void v_symtable_collect(VSymTable* symtable, VAST* ast);
+
+VENOM_API void v_symtable_resolve(VSymTable* symtable, VAST* ast);
+
+VENOM_API VSym* v_symtable_find(VSymTable* symtable, VSymScope* scope, const char* symbol);
 
 VENOM_API void v_symtable_debug(VSymTable* symtable);
 

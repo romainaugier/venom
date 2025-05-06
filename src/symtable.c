@@ -4,6 +4,8 @@
 
 #include "venom/symtable.h"
 
+#include "libromano/stack_no_alloc.h"
+
 /*******************************/
 /* SymTable functions */
 
@@ -29,7 +31,23 @@ void v_symtable_destroy(VSymTable* symtable)
     }
 }
 
-VSym* v_symtable_resolve(VSymTable* symtable, VSymScope* scope, const char* symbol)
+void v_symtable_collect(VSymTable* symtable, VAST* ast)
+{
+    stack_init(VSymScope*, scopes, 256);
+
+    stack_push(scopes, &symtable->module);
+
+    v_symscope_new(stack_top(scopes), VSymScopeType_Global, NULL);
+
+    VENOM_NOT_IMPLEMENTED;
+}
+
+void v_symtable_resolve(VSymTable* symtable, VAST* ast)
+{
+    VENOM_NOT_IMPLEMENTED;
+}
+
+VSym* v_symtable_find(VSymTable* symtable, VSymScope* scope, const char* symbol)
 {
     VENOM_NOT_IMPLEMENTED;
     return NULL;
