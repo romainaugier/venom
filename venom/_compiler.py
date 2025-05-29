@@ -9,6 +9,7 @@ from typing import Dict, Any, Callable, Tuple, List, Optional
 from ._type import Type, pytype_to_type, pyast_annotation_to_string
 from ._execmem import ExecMemory
 from ._symtable import SymbolTable, Parameter, FunctionDef, ScopeType
+from ._ir import IR, IRBuilder
 
 class _JITFunc():
     
@@ -142,9 +143,15 @@ class _JITCompiler():
             symtable.pop_scope()
 
             # Add the function to the module scope
-            symtable.add_symbol(FunctionDef(func_node.name, func_node, param_names, func_return_type))
+            symtable.add_symbol(FunctionDef(func_node.name, None, func_node, param_names, func_return_type))
 
             symtable.print()
+
+            print()
+
+            ir = IR(symtable)
+            ir.build(func_node)
+            ir.print()
 
             return None
 

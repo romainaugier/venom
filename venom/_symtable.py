@@ -47,8 +47,8 @@ class SymbolTableVisitor(ast.NodeVisitor):
         elif isinstance(node, ast.Name):
             symbol = self._symbol_table.resolve_symbol(node.id)
 
-            if symbol and hasattr(symbol, "get_type"):
-                sym_type = symbol.get_type()
+            if symbol and hasattr(symbol, "type"):
+                sym_type = symbol.type
                 return sym_type
 
             return Type.Invalid # Symbol not found or has no type
@@ -149,7 +149,7 @@ class SymbolTableVisitor(ast.NodeVisitor):
                 if sym is None or not isinstance(sym, (Variable, Parameter)):
                     return Type.Invalid
 
-                sym_type = sym.get_type()
+                sym_type = sym.type
 
                 if sym_type == Type.ListInt:
                     return Type.Int
@@ -356,6 +356,7 @@ class SymbolTableVisitor(ast.NodeVisitor):
 class Symbol():
 
     name: str
+    type: Optional[Type]
     
     def __str__(self) -> str:
         return f"SYMBOL(\"{self.name}\")"
@@ -365,8 +366,6 @@ class Symbol():
 
 @dataclass
 class Variable(Symbol):
-
-    type: Optional[Type]
     
     def __str__(self) -> str:
         return f"VARIABLE(\"{self.name}\", {type_to_string(self.type)})"
