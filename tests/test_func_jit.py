@@ -30,6 +30,7 @@ class TestVenom(unittest.TestCase):
         res = sine_maclaurin(12.0)
 
         res = add_numbers(5, 3)
+        res = add_numbers(4.0, 3)
 
         res = sum_array([1.0, 2.0, 4.0, 6.0])
 

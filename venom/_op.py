@@ -56,18 +56,18 @@ def ast_binop_to_binop(op: ast.BinOp) -> Optional[BinaryOpType]:
     return _ast_binop_to_binop.get(op_type)
 
 _binop_to_string = {
-    BinaryOpType.Add: "+",
-    BinaryOpType.Sub: "-",
-    BinaryOpType.Mul: "*",
-    BinaryOpType.Div: "/",
-    BinaryOpType.FloorDiv: "//",
-    BinaryOpType.Mod: "%",
-    BinaryOpType.Pow: "**",
-    BinaryOpType.BitAnd: "&",
-    BinaryOpType.BitOr: "|",
-    BinaryOpType.BitXor: "^",
-    BinaryOpType.RShift: ">>",
-    BinaryOpType.LShift: "<<",
+    BinaryOpType.Add: "add",
+    BinaryOpType.Sub: "sub",
+    BinaryOpType.Mul: "mul",
+    BinaryOpType.Div: "div",
+    BinaryOpType.FloorDiv: "fdiv",
+    BinaryOpType.Mod: "mod",
+    BinaryOpType.Pow: "pow",
+    BinaryOpType.BitAnd: "band",
+    BinaryOpType.BitOr: "bor",
+    BinaryOpType.BitXor: "bxor",
+    BinaryOpType.RShift: "rsh",
+    BinaryOpType.LShift: "lsh",
 }
 
 def binop_to_string(op: BinaryOpType) -> str:

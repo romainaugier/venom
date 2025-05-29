@@ -17,8 +17,33 @@ class Type(enum.IntEnum):
     ListFloat = 7
     ListBool = 8
 
+def type_rank(type: Type) -> int:
+    if type == Type.Float:
+        return 3
+    elif type == Type.Int:
+        return 2
+    elif type == Type.Bool:
+        return 1
+    else:
+        return 0
+
 def type_to_string(type: Type) -> str:
     return type.name
+
+_type_to_ir_string = {
+    Type.Void: "",
+    Type.Int: "i64",
+    Type.Float: "f64",
+    Type.Bool: "i32",
+    Type.Bytes: "i8",
+    Type.Str: "i16",
+    Type.ListInt: "i64*",
+    Type.ListFloat: "f64*",
+    Type.ListBool: "i32*",
+}
+
+def type_to_ir_string(type: Type) -> str:
+    return _type_to_ir_string.get(type)
 
 _pytype_to_type = {
     "None": Type.Void,
@@ -33,7 +58,8 @@ _pytype_to_type = {
 }
 
 def pytype_to_type(pytype: str) -> Type:
-    pytype = pytype.lstrip("typing.")
+    if pytype.startswith("typing."):
+        pytype = pytype.lstrip("typing.")
 
     return _pytype_to_type.get(pytype, Type.Invalid)    
 

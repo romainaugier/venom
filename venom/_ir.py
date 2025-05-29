@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Union, Dict, Any
 
 from ._op import *
-from ._type import Type, pytype_to_type, type_to_string
+from ._type import Type, pytype_to_type, type_to_string, type_to_ir_string, type_rank
 from ._symtable import SymbolTable
 
 @dataclass
@@ -63,9 +63,9 @@ class IRFunction():
     blocks: List[IRBlock] = field(default_factory=list)
 
     def print(self, indent_size: int, depth: int) -> None:
-        parameters_str = ', '.join([f"{name}: {type_to_string(type)}" for name, type in self.parameters.items()])
+        parameters_str = ', '.join([f"{name}: {type_to_ir_string(type)}" for name, type in self.parameters.items()])
 
-        print(" " * indent_size * depth, f"FUNCTION {self.name} ({parameters_str}) -> {type_to_string(self.return_type)}")
+        print(" " * indent_size * depth, f"FUNCTION {self.name} ({parameters_str}) -> {type_to_ir_string(self.return_type)}")
 
         for block in self.blocks:
             block.print(indent_size, depth + 1)
@@ -91,7 +91,7 @@ class IRVariable(IRStatement):
     type: Type
 
     def print(self, indent_size: int, depth: int) -> None:
-        print(" " * indent_size * depth, f"%{self.version} = {self.name}")
+        print(" " * indent_size * depth, f"%{self.version} = {type_to_ir_string(self.type)} {self.name}")
 
 @dataclass
 class IRLiteral(IRStatement):
@@ -104,9 +104,20 @@ class IRLiteral(IRStatement):
     value: Any
 
     def print(self, indent_size: int, depth: int) -> None:
-        print(" " * indent_size * depth, f"%{self.version} = {self.name}")
+        print(" " * indent_size * depth, f"%{self.version} = {type_to_ir_string(self.type)} {self.name}")
 
 # IR Ops
+
+@dataclass
+class IRCastOp(IRStatement):
+    
+    operand: int
+    type_from: Type
+    type_to: Type
+
+    def print(self, indent_size: int, depth: int) -> None:
+        print(" " * indent_size * depth, 
+              f"%{self.version} = {type_to_ir_string(self.type_to)} cast %{self.operand}")
 
 @dataclass
 class IRUnaryOp(IRStatement):
@@ -123,9 +134,11 @@ class IRBinaryOp(IRStatement):
     op: BinaryOpType
     left: int
     right: int
+    type: Type
 
     def print(self, indent_size: int, depth: int) -> None:
-        print(" " * indent_size * depth, f"%{self.version} = %{self.left} {binop_to_string(self.op)} %{self.right}")
+        print(" " * indent_size * depth, 
+              f"%{self.version} = {type_to_ir_string(self.type)} {binop_to_string(self.op)} %{self.left} %{self.right}")
 
 @dataclass
 class IRTernaryOp(IRStatement):
@@ -231,23 +244,48 @@ class IRBuilder(ast.NodeVisitor):
         self._symtable.pop_scope()
 
     def visit_Name(self, node: ast.Name) -> int:
-        return self._ir.new_version(node.id)
+        sym = self._symtable.resolve_symbol(node.id)
+        
+        return self._ir.new_version(node.id, sym.type if sym is not None else Type.Invalid)
 
     def visit_Constant(self, node: ast.Constant) -> int:
-        version = self._ir.new_version("_const")
-        stmt = IRLiteral(version, str(node.value), pytype_to_type(str(type(node.value))), node.value)
+        node_type = pytype_to_type(type(node.value).__name__)
+        version = self._ir.new_version("_const", node_type)
+
+        stmt = IRLiteral(version, str(node.value), node_type, node.value)
         self.emit(stmt)
+
         return version
 
     def visit_BinOp(self, node: ast.BinOp) -> int:
         left = self.visit(node.left)
         right = self.visit(node.right)
+        left_type = self._ir.get_version_type(left)
+        right_type = self._ir.get_version_type(right)
 
+        final_type = left_type
+        
+        if left_type != right_type:
+            left_rank = type_rank(left_type)
+            right_rank = type_rank(right_type)
+            
+            if left_rank > 0 and right_rank > 0:
+                if left_rank > right_rank:
+                    cast_version = self._ir.new_version("_cast", left_type)
+                    cast_stmt = IRCastOp(cast_version, right, right_type, left_type)
+                    self.emit(cast_stmt)
+                    right = cast_version
+                elif right_rank > left_rank:
+                    cast_version = self._ir.new_version("_cast", right_type)
+                    cast_stmt = IRCastOp(cast_version, left, left_type, right_type)
+                    self.emit(cast_stmt)
+                    left = cast_version
+                    final_type = right_type
+            # TODO: If types are incompatible for casting, error
+        
         op = ast_binop_to_binop(node)
-
-        version = self._ir.new_version("_tmp")
-
-        stmt = IRBinaryOp(version, op, left, right)
+        version = self._ir.new_version("_tmp", final_type)
+        stmt = IRBinaryOp(version, op, left, right, final_type)
         self.emit(stmt)
         
         return version
@@ -264,19 +302,24 @@ class IR():
         self._symtable = symtable
         self._version_counter = 0
         self._variables_versions = dict()
+        self._version_types = dict()
 
         self._blocks = list()
         self._functions = list()
         self._classes = list()
 
-    def new_version(self, variable_name: str) -> int:
+    def new_version(self, variable_name: str, type: Type) -> int:
         version = self._version_counter
         self._version_counter += 1
         self._variables_versions[variable_name] = version
+        self._version_types[version] = type
         return version
 
-    def get_version(self, variable_name) -> Optional[int]:
+    def get_version(self, variable_name: str) -> Optional[int]:
         return self._variables_versions.get(variable_name)
+
+    def get_version_type(self, version: int) -> Type:
+        return self._version_types.get(version, Type.Invalid)
 
     def build(self, tree: ast.expr) -> bool:
         self._version_counter = 0
