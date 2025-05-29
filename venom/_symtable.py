@@ -1,6 +1,10 @@
-import ast
+from __future__ import annotations
 
-from typing import Optional, List, Set
+import ast
+import enum
+
+from dataclasses import dataclass, field
+from typing import Optional, List, Set, Dict
 
 from ._type import Type, type_to_string, pytype_to_type, pyast_annotation_to_string
 from ._error import print_ast_error
@@ -41,7 +45,7 @@ class SymbolTableVisitor(ast.NodeVisitor):
             if node.value is None:
                 return Type.Void
         elif isinstance(node, ast.Name):
-            symbol = self._symbol_table.get_symbol(node.id)
+            symbol = self._symbol_table.resolve_symbol(node.id)
 
             if symbol and hasattr(symbol, "get_type"):
                 sym_type = symbol.get_type()
@@ -100,7 +104,7 @@ class SymbolTableVisitor(ast.NodeVisitor):
             elif op_type in (ast.BitAnd, ast.BitOr, ast.BitXor):
                 return Type.Int
 
-            # Bitshifts (<<, >>)
+            # Bitshifts (>>, <<)
             elif op_type in (ast.RShift, ast.LShift):
                 return Type.Int
 
@@ -140,7 +144,7 @@ class SymbolTableVisitor(ast.NodeVisitor):
         elif isinstance(node, ast.Subscript):
             # arr[i]
             if isinstance(node.value, ast.Name):
-                sym = self._symbol_table.get_symbol(node.value.id)
+                sym = self._symbol_table.resolve_symbol(node.value.id)
 
                 if sym is None or not isinstance(sym, (Variable, Parameter)):
                     return Type.Invalid
@@ -348,60 +352,120 @@ class SymbolTableVisitor(ast.NodeVisitor):
         for stmt_in_orelse in node.orelse:
             self.visit(stmt_in_orelse)
 
+@dataclass
 class Symbol():
+
+    name: str
     
-    def __init__(self, name: str) -> None:
-        self._name = name
+    def __str__(self) -> str:
+        return f"SYMBOL(\"{self.name}\")"
 
-    def get_name(self) -> str:
-        return self._name
+    def __repr__(self) -> str:
+        return self.__str__()
 
+@dataclass
 class Variable(Symbol):
+
+    type: Optional[Type]
     
-    def __init__(self, name: str, type: Type = None) -> None:
-        super().__init__(name)
+    def __str__(self) -> str:
+        return f"VARIABLE(\"{self.name}\", {type_to_string(self.type)})"
 
-        self._type = type
-
-    def get_type(self) -> Optional[Type]:
-        return self._type
-
-    def set_type(self, type: Type) -> None:
-        self._type = type
-
+@dataclass
 class Parameter(Symbol):
     
-    def __init__(self, name: str, type: Type = None) -> None:
-        super().__init__(name)
+    type: Optional[Type]
 
-        self._type = type
+    def __str__(self) -> str:
+        return f"PARAMETER(\"{self.name}\", {type_to_string(self.type)})"
 
-    def get_type(self) -> Optional[Type]:
-        return self._type
+@dataclass
+class FunctionDef(Symbol):
+
+    ast_node: ast.FunctionDef
+    parameters: List[str] = field(default_factory=list)
+    return_type: Optional[Type] = field(default=Type.Invalid)
+
+    def __str__(self) -> str:
+        return f"FUNCTIONDEF(\"{self.name}\", {len(self.parameters)} parameter{'s' if len(self.parameters) > 1 else ''}, {type_to_string(self.return_type)})"
+
+@dataclass
+class ClassDef(Symbol):
+
+    ast_node: ast.ClassDef
+    var_members: List[str] = field(default_factory=list)
+    func_members: List[str] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        return f"CLASSDEF(\"{self.name}\")"
+
+class ScopeType(enum.IntEnum):
+    Module = 0
+    Class = 1
+    Function = 2
+    Body = 3
+
+@dataclass
+class ScopeFrame():
+
+    name: str
+    type: ScopeType
+    symbols: Dict[str, Symbol] = field(default_factory=dict)
+    parent: "ScopeFrame" = field(default=None)
+    children: List["ScopeFrame"] = field(default_factory=list)
+
+    def print(self, depth: int, indent_size: int = 4) -> None:
+        print(" " * indent_size * depth, end="")
+        print(f"SCOPE \"{self.name}\" ({self.type.name})")
+
+        for symbol in self.symbols.values():
+            print(" " * indent_size * (depth + 1), end="")
+            print(f"{symbol}")
+
+        for child in self.children:
+            child.print(depth + 1, indent_size)
 
 class SymbolTable():
     
-    def __init__(self) -> None:
-        self._symbols = dict()
+    def __init__(self, name: str = None) -> None:
+        self._root = ScopeFrame(name if name is not None else "__module__", ScopeType.Module)
+        self._current_scope = self._root
+
+    def push_scope(self, name: str, scope_type: ScopeType) -> None:
+        new_scope = ScopeFrame(name, scope_type, parent=self._current_scope)
+        self._current_scope.children.append(new_scope)
+        self._current_scope = new_scope
+
+    def set_scope(self, name: str) -> Optional[ScopeType]:
+        for scope in self._current_scope.children:
+            if scope.name == name:
+                self._current_scope = scope
+                return scope.type
+            
+        return None
+
+    def pop_scope(self) -> None:
+        self._current_scope = self._current_scope.parent
 
     def add_symbol(self, symbol: Symbol) -> None:
-        self._symbols[symbol.get_name()] = symbol
+        self._current_scope.symbols[symbol.name] = symbol
 
-    def get_symbol(self, name: str) -> Optional[Symbol]:
-        return self._symbols.get(name)
+    def resolve_symbol(self, name: str) -> Optional[Symbol]:
+        scope = self._current_scope
+        
+        while scope is not None:
+            if name in scope.symbols:
+                return scope.symbols.get(name)
+
+            scope = scope.parent
+
+        return None
 
     def print(self, indent_size: int = 4) -> None:
         print("SYMBOL TABLE")
 
-        for symbol in self._symbols.values():
-            print(" " * indent_size + "-" + f" {symbol.get_name()}", end="")
-
-            if isinstance(symbol, (Variable, Parameter)):
-                type = symbol.get_type()
-
-                print(f" ({type_to_string(type)})", end="")
-
-            print()
+        if self._root is not None:
+            self._root.print(0, indent_size)
 
     def collect_from_function(self, function_node: ast.FunctionDef, function_source_code: str = None) -> Type:
         if not isinstance(function_node, ast.FunctionDef):
@@ -453,3 +517,11 @@ class SymbolTable():
             print(f"Error: Function \"{function_node.name}\" has different return types: {', '.join(sorted_types_str)}")
 
             return Type.Invalid
+
+    def collect_from_file(self, body: ast.expr, source_code: str = None) -> bool:
+        if not isinstance(body, ast.Module):
+            return False
+
+        visitor = SymbolTableVisitor(self, source_code)
+
+        visitor.visit(body)

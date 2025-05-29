@@ -1,5 +1,5 @@
 import functools
-import traceback
+import os
 
 from typing import Callable
 
@@ -14,7 +14,7 @@ def jit(func: Callable) -> Callable:
             print(f"Error: kwargs not supported for now, disabling jit-compilation for \"{func.__name__}\"")
             return func(*args, **kwargs)
         
-        jit_func = _compiler.jit(func, args)
+        jit_func = _compiler.jit_func(func, args)
 
         if jit_func is not None:
             return jit_func(*args)
@@ -24,3 +24,6 @@ def jit(func: Callable) -> Callable:
         return func(*args, **kwargs)
     
     return wrapper
+
+def compile_file(filepath: str) -> None:
+    _compiler.jit_file(filepath)

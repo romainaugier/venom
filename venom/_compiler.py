@@ -2,17 +2,17 @@ import ast
 import ctypes
 import hashlib
 import inspect
+import os
 
 from typing import Dict, Any, Callable, Tuple, List, Optional
 
 from ._type import Type, pytype_to_type, pyast_annotation_to_string
 from ._execmem import ExecMemory
-from ._symtable import SymbolTable, Parameter
+from ._symtable import SymbolTable, Parameter, FunctionDef, ScopeType
 
-class _JitFunc():
+class _JITFunc():
     
     def __init__(self, bytecode: bytes, argtypes: Tuple, restype: Any) -> None:
-        
         self._exec_mem = ExecMemory(len(bytecode))
         self._exec_mem.write(bytecode)
 
@@ -22,9 +22,15 @@ class _JitFunc():
     def __call__(self, *args):
         return self._func(*args)
 
+class _JITFile():
+    
+    def __init__(self, code: str) -> None:
+        
+        self._code = code
+
 class _JITCompiler():
 
-    _cache: Dict[str, _JitFunc]
+    _cache: Dict[str, _JITFunc]
 
     def __init__(self) -> None:
         self._cache = dict()
@@ -93,7 +99,7 @@ class _JITCompiler():
 
         return mapping
     
-    def jit(self, func: Callable, args: Tuple[Any, ...]) -> Optional[_JitFunc]:
+    def jit_func(self, func: Callable, args: Tuple[Any, ...]) -> Optional[_JITFunc]:
         func_source = inspect.getsource(func)
 
         type_sig = self._get_type_signature(args)
@@ -114,17 +120,54 @@ class _JITCompiler():
                 print(f"Error: cannot compile \"{type(func_node)}\", it is not a function definition")
                 return None
 
-            symtable = SymbolTable()
+            symtable = SymbolTable("__jitmodule__")
+
+            symtable.push_scope(func_node.name, ScopeType.Function)
+
+            param_names = list()
 
             for name, type in self._get_arg_types(func_node, type_sig).items():
                 symtable.add_symbol(Parameter(name, type))
 
+                param_names.append(name)
+
+            # Build the symtable for the jit function
             func_return_type = symtable.collect_from_function(func_node, source)
 
-            symtable.print()
-
-            if func_return_type == Type.Invalid:
+            if func_return_type is None or func_return_type == Type.Invalid:
                 print(f"Error: cannot deduce return type for function \"{func.__name__}\", aborting jit-compilation")
                 return None
 
+            # Back to module scope
+            symtable.pop_scope()
+
+            # Add the function to the module scope
+            symtable.add_symbol(FunctionDef(func_node.name, func_node, param_names, func_return_type))
+
+            symtable.print()
+
             return None
+
+    def jit_file(self, filepath: str) -> Optional[_JITFile]:
+        """
+        Compiles the given file, as it is currently being worked on the function will change
+
+        Args:
+            filepath (str): Path to the file that will be compiled
+
+        Returns:
+            Optional[_JITFile]: _JITFile if the compilation is successful, None otherwise
+        """
+        if not os.path.exists(filepath):
+            return None
+
+        with open(filepath, "r", encoding="utf-8") as file:
+            source = file.read()
+
+        tree = ast.parse(source)
+
+        # Build the symtable for the jit module
+        symtable = SymbolTable()
+        symtable.collect_from_file(tree, source)
+
+        symtable.print()

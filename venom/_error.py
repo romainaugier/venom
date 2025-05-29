@@ -3,14 +3,14 @@ import sys
 
 from typing import Optional
 
-def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None):
+def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None) -> None:
     """
     Print a beautiful error message showing where the error occurred in the AST
     
     Args:
-        node: The AST node where the error occurred
-        err: The error message to display
-        source_code: Optional source code string. If not provided, will try to read from file_path
+        node (ast.expr): The AST node where the error occurred
+        err (str): The error message to display
+        source_code (Optional[str]): Source code string. If not provided, no details will be provided in the error message. Defaults to None.
     """
     lineno = getattr(node, "lineno", None)
     col_offset = getattr(node, "col_offset", None)
