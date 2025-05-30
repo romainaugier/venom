@@ -1,7 +1,7 @@
 import ast
 import enum
 
-from typing import Optional
+from typing import Optional, List, Union
 
 class UnaryOpType(enum.IntEnum):
     Add = 0    # +x
@@ -80,6 +80,33 @@ class CompareOpType(enum.IntEnum):
     LtEq = 3  # a <= b
     Gt = 4    # a > b
     GtEq = 5  # a >= b
+
+_ast_compareop_to_compareop = {
+    ast.Eq: CompareOpType.Eq,
+    ast.NotEq: CompareOpType.NotEq,
+    ast.Lt: CompareOpType.Lt,
+    ast.LtE: CompareOpType.LtEq,
+    ast.Gt: CompareOpType.Gt,
+    ast.GtE: CompareOpType.GtEq,
+}
+
+def ast_compareop_to_compareop(op: ast.Compare) -> Union[CompareOpType, List[CompareOpType]]:
+    if len(op.ops) == 1:
+        return _ast_compareop_to_compareop.get(type(op.ops[0]))
+    else:
+        return [_ast_compareop_to_compareop.get(type(o)) for o in op.ops]
+
+_compareop_to_ir_string = {
+    CompareOpType.Eq: "eq",
+    CompareOpType.NotEq: "neq",
+    CompareOpType.Lt: "lt",
+    CompareOpType.LtEq: "lteq",
+    CompareOpType.Gt: "gt",
+    CompareOpType.GtEq: "gteq",
+}
+
+def compareop_to_ir_string(op: CompareOpType) -> str:
+    return _compareop_to_ir_string.get(op, "?")
 
 class BoolOp(enum.IntEnum):
     And = 0 # a and b

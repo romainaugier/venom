@@ -25,7 +25,7 @@ class TestVenom(unittest.TestCase):
 
         @venom.jit
         def hash_int(x) -> int:
-            return x ^ 0x123456789 & 0x987654321 | 0x2
+            return 0 if x <= 0 else x ^ 0x123456789 & 0x987654321 | 0x2
 
         res = sine_maclaurin(12.0)
 

@@ -6,10 +6,12 @@ import os
 
 from typing import Dict, Any, Callable, Tuple, List, Optional
 
-from ._type import Type, pytype_to_type, pyast_annotation_to_string
+from ._type import *
 from ._execmem import ExecMemory
 from ._symtable import SymbolTable, Parameter, FunctionDef, ScopeType
-from ._ir import IR, IRBuilder
+from ._ir import IR
+
+DEBUG = 1
 
 class _JITFunc():
     
@@ -48,57 +50,9 @@ class _JITCompiler():
             lines.append(line[i:])
 
         return '\n'.join(lines)
-    
-    def _get_type_signature(self, args: Tuple[Any, ...]) -> List[Type]:
-        types = []
 
-        for arg in args:
-            if isinstance(arg, int):
-                types.append(Type.Int)
-            elif isinstance(arg, float):
-                types.append(Type.Float)
-            elif isinstance(arg, list):
-                if len(arg) == 0:
-                    print("Error: Empty lists not supported")
-                    return None
-
-                first_type = type(arg[0])
-
-                if not all(isinstance(x, first_type) for x in arg):
-                    print("Error: Mixed-type lists not supported")
-                    return None
-                
-                if isinstance(arg[0], int):
-                    types.append(Type.ListInt)
-                elif isinstance(arg[0], float):
-                    types.append(Type.ListFloat)
-                else:
-                    print(f"Error: Unsupported list element type: {type(arg[0])}")
-                    return None
-            else:
-                print(f"Error: Unsupported type: {type(arg)}")
-                return None
-
-        return types
-
-    def _get_arg_types(self, func_node: ast.FunctionDef, arg_types: List[Type]) -> Dict[str, Type]:
-        annotations = [arg.annotation for arg in func_node.args.args]
-
-        for i, ann in enumerate(annotations):
-            if ann is not None:
-                str_ann = pyast_annotation_to_string(ann)
-
-                if str_ann is not None:
-                    arg_types[i] = pytype_to_type(str_ann)
-        
-        names = [arg.arg for arg in func_node.args.args]
-
-        mapping = dict()
-
-        for name, type in zip(names, arg_types):
-            mapping[name] = type
-
-        return mapping
+    def _get_type_signature(self, args: Tuple[Any, ...]) -> str:
+        return str('_'.join(t.beautiful_repr() for t in types_from_function_args(args)))
     
     def jit_func(self, func: Callable, args: Tuple[Any, ...]) -> Optional[_JITFunc]:
         func_source = inspect.getsource(func)
@@ -121,21 +75,23 @@ class _JITCompiler():
                 print(f"Error: cannot compile \"{type(func_node)}\", it is not a function definition")
                 return None
 
-            symtable = SymbolTable("__jitmodule__")
+            args = { arg.arg: t for arg, t in zip(func_node.args.args, types_from_function_args(args)) }
 
+            func_type = FunctionType(func_node.name, args, None)
+
+            symtable = SymbolTable("__jitmodule__")
             symtable.push_scope(func_node.name, ScopeType.Function)
 
-            param_names = list()
-
-            for name, type in self._get_arg_types(func_node, type_sig).items():
+            for name, type in args.items():
                 symtable.add_symbol(Parameter(name, type))
 
-                param_names.append(name)
-
-            # Build the symtable for the jit function
+            # Build the symtable and run semantic analysis for the jit function
             func_return_type = symtable.collect_from_function(func_node, source)
 
-            if func_return_type is None or func_return_type == Type.Invalid:
+            if func_return_type is None:
+                print(f"Error: error caught during parse of function \"{func.__name__}\", aborting jit-compilation")
+                return None
+            elif func_return_type == PrimitiveType(Primitive.Invalid):
                 print(f"Error: cannot deduce return type for function \"{func.__name__}\", aborting jit-compilation")
                 return None
 
@@ -143,15 +99,24 @@ class _JITCompiler():
             symtable.pop_scope()
 
             # Add the function to the module scope
-            symtable.add_symbol(FunctionDef(func_node.name, None, func_node, param_names, func_return_type))
+            symtable.add_symbol(FunctionDef(func_node.name, None, func_node, list(args.keys()), { func_type.mangled_name(): func_type }))
 
-            symtable.print()
-
-            print()
-
+            # Generate the Intermediate Representation
             ir = IR(symtable)
             ir.build(func_node)
-            ir.print()
+
+            if DEBUG:
+                print("SOURCE")
+                print(source)
+
+                print()
+
+                symtable.print()
+
+                print()
+                ir.print()
+
+                print()
 
             return None
 

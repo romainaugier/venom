@@ -6,7 +6,8 @@ import enum
 from dataclasses import dataclass, field
 from typing import Optional, List, Set, Dict
 
-from ._type import Type, type_to_string, pytype_to_type, pyast_annotation_to_string
+from ._type import *
+# from ._builtin import is_builtin_function, get_builtin_function
 from ._error import print_ast_error
 
 class SymbolTable:
@@ -18,32 +19,41 @@ class SymbolTableVisitor(ast.NodeVisitor):
         self._symbol_table = symbol_table
         self._return_types = list()
         self._source_code = source_code
+        self._has_error = False
+
+    def has_error(self) -> bool:
+        return self._has_error
+
+    def _error(self, node: ast.expr, message: str) -> None:
+        self._has_error = True
+
+        print_ast_error(node, message, self._source_code)
 
     def get_return_types(self) -> List[Type]:
         return self._return_types
 
     def _deduce_expr_type(self, node: Optional[ast.expr]) -> Type:
         if node is None: # Return statement without a value
-            return Type.Void
+            return PrimitiveType(Primitive.Void)
 
         if isinstance(node, ast.Constant):
             if isinstance(node.value, int): 
-                return Type.Int
+                return PrimitiveType(Primitive.Int64)
 
             if isinstance(node.value, float):
-                return Type.Float
+                return PrimitiveType(Primitive.Float64)
 
             if isinstance(node.value, bool):
-                return Type.Bool
+                return PrimitiveType(Primitive.Bool)
 
             if isinstance(node.value, str):
-                return Type.Str
+                return ArrayType(Primitive.Int16)
 
             if isinstance(node.value, bytes):
-                return Type.Bytes
+                return ArrayType(Primitive.Int8)
 
             if node.value is None:
-                return Type.Void
+                return PrimitiveType(Primitive.Void)
         elif isinstance(node, ast.Name):
             symbol = self._symbol_table.resolve_symbol(node.id)
 
@@ -51,246 +61,249 @@ class SymbolTableVisitor(ast.NodeVisitor):
                 sym_type = symbol.type
                 return sym_type
 
-            return Type.Invalid # Symbol not found or has no type
+            self._error(node, f"Cannot find symbol: {symbol}")
+
+            return PrimitiveType(Primitive.Invalid) # Symbol not found or has no type
         elif isinstance(node, ast.BinOp):
             left_type = self._deduce_expr_type(node.left)
             right_type = self._deduce_expr_type(node.right)
 
-            if left_type == Type.Invalid or right_type == Type.Invalid: 
-                return Type.Invalid
+            if left_type == PrimitiveType(Primitive.Invalid) or right_type == PrimitiveType(Primitive.Invalid): 
+                self._error(node, f"Invalid binary Op")
+                return PrimitiveType(Primitive.Invalid)
             
             # Arithmetic operations
             op_type = type(node.op)
 
             if op_type in (ast.Add, ast.Sub, ast.Mult):
-                if left_type == Type.Float or right_type == Type.Float: 
-                    return Type.Float
+                if left_type == PrimitiveType(Primitive.Float64) or right_type == PrimitiveType(Primitive.Float64): 
+                    return PrimitiveType(Primitive.Float64)
 
-                if left_type == Type.Int and right_type == Type.Int:
-                    return Type.Int
+                if left_type == PrimitiveType(Primitive.Int64) and right_type == PrimitiveType(Primitive.Int64):
+                    return PrimitiveType(Primitive.Int64)
 
-                if left_type == Type.Str and right_type == Type.Str and op_type is ast.Add:
-                    return Type.Str
+                if left_type == PrimitiveType(Primitive.Str) and right_type == PrimitiveType(Primitive.Str) and op_type is ast.Add:
+                    return PrimitiveType(Primitive.Str)
 
-                if left_type == Type.Bytes and right_type == Type.Bytes and op_type is ast.Add:
-                    return Type.Bytes
+                if left_type == PrimitiveType(Primitive.Bytes) and right_type == PrimitiveType(Primitive.Bytes) and op_type is ast.Add:
+                    return PrimitiveType(Primitive.Bytes)
 
             # True division /
             elif op_type is ast.Div:
-                if left_type in (Type.Int, Type.Float) and right_type in (Type.Int, Type.Float):
-                    return Type.Float
+                if left_type in (PrimitiveType(Primitive.Int64), PrimitiveType(Primitive.Float64)) and right_type in (PrimitiveType(Primitive.Int64), PrimitiveType(Primitive.Float64)):
+                    return PrimitiveType(Primitive.Float64)
 
             # Floor division //
             elif op_type is ast.FloorDiv: 
-                if (left_type == Type.Int and right_type == Type.Int) or \
-                   (left_type == Type.Float and right_type == Type.Float) or \
-                   (left_type == Type.Float and right_type == Type.Int) or \
-                   (left_type == Type.Int and right_type == Type.Float): 
-                       return Type.Float if Type.Float in (left_type, right_type) else Type.Int
+                if (left_type == PrimitiveType(Primitive.Int64) and right_type == PrimitiveType(Primitive.Int64)) or \
+                   (left_type == PrimitiveType(Primitive.Float64) and right_type == PrimitiveType(Primitive.Float64)) or \
+                   (left_type == PrimitiveType(Primitive.Float64) and right_type == PrimitiveType(Primitive.Int64)) or \
+                   (left_type == PrimitiveType(Primitive.Int64) and right_type == PrimitiveType(Primitive.Float64)): 
+                       return PrimitiveType(Primitive.Float64) if PrimitiveType(Primitive.Float64) in (left_type, right_type) else PrimitiveType(Primitive.Int64)
 
             # % and ** (simplified)
             elif op_type in (ast.Mod, ast.Pow):
-                if left_type == Type.Float or right_type == Type.Float:
-                    return Type.Float
+                if left_type == PrimitiveType(Primitive.Float64) or right_type == PrimitiveType(Primitive.Float64):
+                    return PrimitiveType(Primitive.Float64)
 
-                if left_type == Type.Int and right_type == Type.Int:
-                    return Type.Int
+                if left_type == PrimitiveType(Primitive.Int64) and right_type == PrimitiveType(Primitive.Int64):
+                    return PrimitiveType(Primitive.Int64)
             
             # Comparisons
             elif op_type in (ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE):
-                return Type.Bool
+                return PrimitiveType(Primitive.Bool)
 
             # Bitwise (&, |, ^)
             elif op_type in (ast.BitAnd, ast.BitOr, ast.BitXor):
-                return Type.Int
+                return PrimitiveType(Primitive.Int64)
 
             # Bitshifts (>>, <<)
             elif op_type in (ast.RShift, ast.LShift):
-                return Type.Int
+                return PrimitiveType(Primitive.Int64)
 
-            print_ast_error(node, f"unsupported Binary Op type: {op_type}", self._source_code)
+            self._error(node, f"unsupported Binary Op type: {op_type}")
 
-            return Type.Invalid
+            return PrimitiveType(Primitive.Invalid)
         elif isinstance(node, ast.Compare): # x < y < z
-            return Type.Bool
+            return PrimitiveType(Primitive.Bool)
         elif isinstance(node, ast.BoolOp): # and, or
-            return Type.Bool
+            return PrimitiveType(Primitive.Bool)
         elif isinstance(node, ast.UnaryOp):
             operand_type = self._deduce_expr_type(node.operand)
 
-            if operand_type == Type.Invalid: 
-                return Type.Invalid
+            if operand_type == PrimitiveType(Primitive.Invalid): 
+                self._error = True
+                return PrimitiveType(Primitive.Invalid)
 
             op_type = type(node.op)
 
             if op_type is ast.Not:
-                return Type.Bool
+                return PrimitiveType(Primitive.Bool)
 
             if op_type is ast.UAdd:
                 return operand_type # +x
 
             if op_type is ast.USub: # -x
-                if operand_type == Type.Int:
-                    return Type.Int
+                if operand_type == PrimitiveType(Primitive.Int64):
+                    return PrimitiveType(Primitive.Int64)
 
-                if operand_type == Type.Float:
-                    return Type.Float
+                if operand_type == PrimitiveType(Primitive.Float64):
+                    return PrimitiveType(Primitive.Float64)
 
             if op_type is ast.Invert: # ~x (bitwise not)
-                 if operand_type == Type.Int:
-                     return Type.Int
+                 if operand_type == PrimitiveType(Primitive.Int64):
+                     return PrimitiveType(Primitive.Int64)
 
-            return Type.Invalid
+            self._error = True
+
+            return PrimitiveType(Primitive.Invalid)
         elif isinstance(node, ast.Subscript):
             # arr[i]
             if isinstance(node.value, ast.Name):
                 sym = self._symbol_table.resolve_symbol(node.value.id)
 
                 if sym is None or not isinstance(sym, (Variable, Parameter)):
-                    return Type.Invalid
+                    self._error = True
+                    return PrimitiveType(Primitive.Invalid)
 
                 sym_type = sym.type
 
-                if sym_type == Type.ListInt:
-                    return Type.Int
-                elif sym_type == Type.ListFloat:
-                    return Type.Float
-                elif sym_type == Type.ListBool:
-                    return Type.Bool
+                if sym_type == PrimitiveType(Primitive.Int64):
+                    return PrimitiveType(Primitive.Int64)
+                elif sym_type == PrimitiveType(Primitive.ListFloat64):
+                    return PrimitiveType(Primitive.Float64)
+                elif sym_type == PrimitiveType(Primitive.ListBool):
+                    return PrimitiveType(Primitive.Bool)
                 else:
-                    return Type.Invalid
+                    self._error = True
+                    return PrimitiveType(Primitive.Invalid)
         elif isinstance(node, ast.List):
             # [1, 2, 3]
             if not node.elts: 
-                print_ast_error(node, "empty list are not supported", self._source_code)
-                return Type.Invalid
+                self._error(node, "empty list are not supported")
+                return PrimitiveType(Primitive.Invalid)
             
             element_types = { self._deduce_expr_type(e) for e in node.elts }
 
-            if Type.Invalid in element_types and len(element_types) > 1:
-                return Type.Invalid
+            if PrimitiveType(Primitive.Invalid) in element_types and len(element_types) > 1:
+                self._error = True
+                return PrimitiveType(Primitive.Invalid)
 
             if len(element_types) == 1:
                 sole_type = element_types.pop()
 
-                if sole_type == Type.Int: 
-                    return Type.ListInt
+                if sole_type == PrimitiveType(Primitive.Int64): 
+                    return PrimitiveType(Primitive.ListInt64)
 
-                if sole_type == Type.Float:
-                    return Type.ListFloat
+                if sole_type == PrimitiveType(Primitive.Float64):
+                    return PrimitiveType(Primitive.ListFloat64)
 
-                if sole_type == Type.Bool:
-                    return Type.ListBool
+                if sole_type == PrimitiveType(Primitive.Bool):
+                    return PrimitiveType(Primitive.ListBool)
 
-            print_ast_error(node, "mixed-types list are not supported", self._source_code)
+            self._error(node, "mixed-types list are not supported")
 
-            return Type.Invalid 
+            return PrimitiveType(Primitive.Invalid) 
         elif isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name):
                 func_name = node.func.id
 
-                if func_name == "int":
-                    return Type.Int
-
-                if func_name == "float":
-                    return Type.Float
-
-                if func_name == "str":
-                    return Type.Str
-
-                if func_name == "bool":
-                    return Type.Bool
-
-                if func_name == "bytes":
-                    return Type.Bytes
+                if is_builtin_function(func_name):
+                    return get_builtin_function(func_name).return_type
 
                 if func_name == "list":
                     if not node.args: 
-                        print_ast_error(node, "empty list are not supported", self._source_code)
-                        return Type.Invalid
+                        self._error(node, "empty list are not supported")
+                        return PrimitiveType(Primitive.Invalid)
 
                     arg_type = self._deduce_expr_type(node.args[0])
 
-                    if arg_type == Type.ListInt:
-                        return Type.ListInt
+                    if arg_type == PrimitiveType(Primitive.ListInt64):
+                        return PrimitiveType(Primitive.ListInt64)
 
-                    if arg_type == Type.ListFloat:
-                        return Type.ListFloat
+                    if arg_type == PrimitiveType(Primitive.ListFloat64):
+                        return PrimitiveType(Primitive.ListFloat64)
 
-                    if arg_type == Type.ListBool:
-                        return Type.ListBool
+                    if arg_type == PrimitiveType(Primitive.ListBool):
+                        return PrimitiveType(Primitive.ListBool)
 
-                    return Type.Invalid
+                    self._error(node, f"unsupported type in list: {arg_type}")
 
-                if func_name == "len":
-                    return Type.Int
+                    return PrimitiveType(Primitive.Invalid)
 
-                print_ast_error(node, f"unsupported function: {func_name}", self._source_code)
+                self._error(node, f"unsupported function: {func_name}")
 
-                return Type.Invalid
+                return PrimitiveType(Primitive.Invalid)
             elif isinstance(node.func, ast.Attribute):
                 if isinstance(node.func.value, ast.Name):
                     func = node.func.value
 
                     func_name = func.id
 
-                    print_ast_error(node, f"unsupported function: {func_name}", self._source_code)
+                    self._error(node, f"unsupported function: {func_name}")
 
-                    return Type.Invalid
+                    return PrimitiveType(Primitive.Invalid)
                 else:
 
-                    print_ast_error(node, f"unsupported attribute: {type(node.func.value)}", self._source_code)
+                    self._error(node, f"unsupported attribute: {type(node.func.value)}")
 
-                    return Type.Invalid
+                    return PrimitiveType(Primitive.Invalid)
 
             print_ast_error(node, f"unsupported call: {type(node.func)}", self._source_code)
 
-            return Type.Invalid
+            return PrimitiveType(Primitive.Invalid)
         elif isinstance(node, ast.IfExp):
+            if not isinstance(node.test, ast.Compare):
+                self._error(node, f"unsupported IfExp test: {type(node.test)}")
+                return PrimitiveType(Primitive.Invalid)
+
+            if len(node.test.ops) > 1:
+                self._error(node, f"IfExp does not support more than one comparison for now")
+                return PrimitiveType(Primitive.Invalid)
+
             if_type = self._deduce_expr_type(node.body)
             else_type = self._deduce_expr_type(node.orelse)
 
-            if if_type == Type.Invalid or else_type == Type.Invalid:
-                return Type.Invalid
+            if if_type == PrimitiveType(Primitive.Invalid) or else_type == PrimitiveType(Primitive.Invalid):
+                return PrimitiveType(Primitive.Invalid)
             elif if_type != else_type:
-                print_ast_error(node, f"IfExp has different types for if and else exprs: {type_to_string(if_type)} or {type_to_string(else_type)}")
-                return Type.Invalid
+                self._error(node, f"IfExp has different types for if and else exprs: {type_to_string(if_type)} or {type_to_string(else_type)}")
+                return PrimitiveType(Primitive.Invalid)
             else:
                 return if_type
         
-        print_ast_error(node, f"unsupported expression type: {type(node)}", self._source_code)
+        self._error(node, f"unsupported expression type: {type(node)}")
 
-        return Type.Invalid
+        return PrimitiveType(Primitive.Invalid)
 
     def visit_AnnAssign(self, node: ast.AnnAssign):
         # Handles assignments with type annotations like x: int = 10
         if isinstance(node.target, ast.Name):
             var_name = node.target.id
             
-            annotated_type = Type.Invalid
+            annotated_type = PrimitiveType(Primitive.Invalid)
             type_str_hint = pyast_annotation_to_string(node.annotation)
 
             if type_str_hint:
                 annotated_type = pytype_to_type(type_str_hint)
 
-            inferred_type = Type.Invalid
+            inferred_type = PrimitiveType(Primitive.Invalid)
 
             if node.value is not None:
                 inferred_type = self._deduce_expr_type(node.value)
 
-            chosen_type = Type.Invalid
+            chosen_type = PrimitiveType(Primitive.Invalid)
 
-            if annotated_type != Type.Invalid:
+            if annotated_type != PrimitiveType(Primitive.Invalid):
                 chosen_type = annotated_type
 
-                if inferred_type != Type.Invalid and annotated_type != inferred_type and inferred_type != Type.Void:
-                    print_ast_error(node, 
-                                    f"Inferred type {type_to_string(inferred_type)} for \"{var_name}\" conflicts with annotated type {type_to_string(annotated_type)}",
-                                    self._source_code)
+                if inferred_type != PrimitiveType(Primitive.Invalid) and annotated_type != inferred_type and inferred_type != PrimitiveType(Primitive.Void):
+                    self._error(node, 
+                                f"Inferred type {type_to_string(inferred_type)} for \"{var_name}\" conflicts with annotated type {type_to_string(annotated_type)}")
                     
-                    chosen_type = Type.Invalid
+                    chosen_type = PrimitiveType(Primitive.Invalid)
 
-            elif inferred_type != Type.Invalid:
+            elif inferred_type != PrimitiveType(Primitive.Invalid):
                 chosen_type = inferred_type
             
             self._symbol_table.add_symbol(Variable(var_name, chosen_type))
@@ -323,22 +336,22 @@ class SymbolTableVisitor(ast.NodeVisitor):
         if isinstance(node.iter, ast.Call):
             # for i in range()
             if isinstance(node.iter.func, ast.Name) and node.iter.func.id == "range":
-                element_type = Type.Int
+                element_type = PrimitiveType(Primitive.Int64)
         else:
             # for i in []
             iter_expr_type = self._deduce_expr_type(node.iter)
-            element_type = Type.Invalid
+            element_type = PrimitiveType(Primitive.Invalid)
 
-            if iter_expr_type == Type.ListInt: 
-                element_type = Type.Int
-            elif iter_expr_type == Type.ListFloat:
-                element_type = Type.Float
-            elif iter_expr_type == Type.ListBool:
-                element_type = Type.Bool
-            elif iter_expr_type == Type.Str:
-                element_type = Type.Str
-            elif iter_expr_type == Type.Bytes:
-                element_type = Type.Int # TODO: add a char type
+            if iter_expr_type == PrimitiveType(Primitive.ListInt64): 
+                element_type = PrimitiveType(Primitive.Int64)
+            elif iter_expr_type == PrimitiveType(Primitive.ListFloat64):
+                element_type = PrimitiveType(Primitive.Float64)
+            elif iter_expr_type == PrimitiveType(Primitive.ListBool):
+                element_type = PrimitiveType(Primitive.Bool)
+            elif iter_expr_type == PrimitiveType(Primitive.Str):
+                element_type = PrimitiveType(Primitive.Str)
+            elif iter_expr_type == PrimitiveType(Primitive.Bytes):
+                element_type = PrimitiveType(Primitive.Int64) # TODO: add a char type
 
         if isinstance(node.target, ast.Name):
             self._symbol_table.add_symbol(Variable(node.target.id, element_type))
@@ -351,6 +364,14 @@ class SymbolTableVisitor(ast.NodeVisitor):
 
         for stmt_in_orelse in node.orelse:
             self.visit(stmt_in_orelse)
+
+    def visit_Call(self, node: ast.Call):
+        func = node.func
+
+        if isinstance(func, ast.Name):
+            if is_builtin_function(func.id):
+                self._symbol_table.add_builtin_symbol(func.id)
+            func.id
 
 @dataclass
 class Symbol():
@@ -368,7 +389,7 @@ class Symbol():
 class Variable(Symbol):
     
     def __str__(self) -> str:
-        return f"VARIABLE(\"{self.name}\", {type_to_string(self.type)})"
+        return f"VARIABLE(\"{self.name}\", {self.type.beautiful_repr()})"
 
 @dataclass
 class Parameter(Symbol):
@@ -376,17 +397,18 @@ class Parameter(Symbol):
     type: Optional[Type]
 
     def __str__(self) -> str:
-        return f"PARAMETER(\"{self.name}\", {type_to_string(self.type)})"
+        return f"PARAMETER(\"{self.name}\", {self.type.beautiful_repr()})"
 
 @dataclass
 class FunctionDef(Symbol):
 
     ast_node: ast.FunctionDef
     parameters: List[str] = field(default_factory=list)
-    return_type: Optional[Type] = field(default=Type.Invalid)
+
+    specializations: Dict[str, FunctionType] = field(default_factory=dict)
 
     def __str__(self) -> str:
-        return f"FUNCTIONDEF(\"{self.name}\", {len(self.parameters)} parameter{'s' if len(self.parameters) > 1 else ''}, {type_to_string(self.return_type)})"
+        return f"FUNCTIONDEF(\"{self.name}\", {len(self.parameters)} parameter{'s' if len(self.parameters) > 1 else ''}, {len(self.specializations)} specializations)"
 
 @dataclass
 class ClassDef(Symbol):
@@ -398,7 +420,7 @@ class ClassDef(Symbol):
     def __str__(self) -> str:
         return f"CLASSDEF(\"{self.name}\")"
 
-class ScopeType(enum.IntEnum):
+class ScopeType(enum.Int64Enum):
     Module = 0
     Class = 1
     Function = 2
@@ -430,6 +452,8 @@ class SymbolTable():
         self._root = ScopeFrame(name if name is not None else "__module__", ScopeType.Module)
         self._current_scope = self._root
 
+        self._builtins = set()
+
     def push_scope(self, name: str, scope_type: ScopeType) -> None:
         new_scope = ScopeFrame(name, scope_type, parent=self._current_scope)
         self._current_scope.children.append(new_scope)
@@ -449,6 +473,9 @@ class SymbolTable():
     def add_symbol(self, symbol: Symbol) -> None:
         self._current_scope.symbols[symbol.name] = symbol
 
+    def add_builtin_symbol(self, name: str) -> None:
+        self._builtins.add(name)
+
     def resolve_symbol(self, name: str) -> Optional[Symbol]:
         scope = self._current_scope
         
@@ -466,16 +493,20 @@ class SymbolTable():
         if self._root is not None:
             self._root.print(0, indent_size)
 
-    def collect_from_function(self, function_node: ast.FunctionDef, function_source_code: str = None) -> Type:
+    def collect_from_function(self, function_node: ast.FunctionDef, function_source_code: str = None) -> Optional[Type]:
         if not isinstance(function_node, ast.FunctionDef):
-            return Type.Invalid
+            print_ast_error(function_node, f"expected function definition, got: {type(function_node)}", function_source_code)
+            return None
 
         visitor = SymbolTableVisitor(self, function_source_code)
         
         for stmt in function_node.body:
             visitor.visit(stmt)
 
-        hinted_return_type = Type.Invalid
+        if visitor.has_error():
+            return None
+
+        hinted_return_type = PrimitiveType(Primitive.Invalid)
 
         # If "-> hint" is present
         if function_node.returns:
@@ -484,10 +515,10 @@ class SymbolTable():
             if type_str_hint:
                 candidate_hint_type = pytype_to_type(type_str_hint)
 
-                if candidate_hint_type != Type.Invalid:
+                if candidate_hint_type != PrimitiveType(Primitive.Invalid):
                     hinted_return_type = candidate_hint_type
         
-        if hinted_return_type != Type.Invalid:
+        if hinted_return_type != PrimitiveType(Primitive.Invalid):
             return hinted_return_type
 
         # Infer from return statements if no valid annotation was found
@@ -495,17 +526,17 @@ class SymbolTable():
 
         if len(collected_return_statement_types) == 0:
             # No return statements in the function
-            return Type.Void
+            return PrimitiveType(Primitive.Void)
 
         # A function might have "return 1" and "return None" and we do not support this for now, we need a single type
         unique_types = set(collected_return_statement_types)
         
-        # If Type.Invalid is the only one, or remains after filtering, it's an issue
-        valid_unique_types = { t for t in unique_types if t != Type.Invalid }
+        # If PrimitiveType(Primitive.Invalid) is the only one, or remains after filtering, it's an issue
+        valid_unique_types = { t for t in unique_types if t != PrimitiveType(Primitive.Invalid) }
 
         if len(valid_unique_types) == 0:
             # All return expressions were uninferable or explicitly returned an invalidly typed expression.
-            return Type.Invalid
+            return PrimitiveType(Primitive.Invalid)
         
         if len(valid_unique_types) == 1:
             return valid_unique_types.pop()
@@ -515,7 +546,7 @@ class SymbolTable():
 
             print(f"Error: Function \"{function_node.name}\" has different return types: {', '.join(sorted_types_str)}")
 
-            return Type.Invalid
+            return PrimitiveType(Primitive.Invalid)
 
     def collect_from_file(self, body: ast.expr, source_code: str = None) -> bool:
         if not isinstance(body, ast.Module):

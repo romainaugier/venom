@@ -3,6 +3,15 @@ import sys
 
 from typing import Optional
 
+def print_generic_error(err: str) -> None:
+    """
+    Print a generic error message
+
+    Args:
+        err (str): error to print
+    """
+    print(f"Error: {err}")
+
 def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None) -> None:
     """
     Print a beautiful error message showing where the error occurred in the AST

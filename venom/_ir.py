@@ -3,10 +3,10 @@ from __future__ import annotations
 import ast
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any, Tuple
 
 from ._op import *
-from ._type import Type, pytype_to_type, type_to_string, type_to_ir_string, type_rank
+from ._type import *
 from ._symtable import SymbolTable
 
 @dataclass
@@ -141,15 +141,41 @@ class IRBinaryOp(IRStatement):
               f"%{self.version} = {type_to_ir_string(self.type)} {binop_to_string(self.op)} %{self.left} %{self.right}")
 
 @dataclass
+class IRCompareOp(IRStatement):
+    
+    left: int
+    right: int
+    type: Type
+
+    def print(self, indent_size: int, depth: int) -> None:
+        print(" " * indent_size * depth,
+              f"cmp {type_to_ir_string(self.type)} %{self.left}, %{self.right}")
+
+@dataclass
+class IRCMovOp(IRStatement):
+    
+    op: CompareOpType
+    true_val: int
+    false_val: int
+    type: Type
+
+    def print(self, indent_size: int, depth: int) -> None:
+        print(" " * indent_size * depth,
+              f"%{self.version} = {type_to_ir_string(self.type)} cmov %{self.true_val}, %{self.false_val} {compareop_to_ir_string(self.op)}")
+
+@dataclass
 class IRTernaryOp(IRStatement):
 
     op: CompareOpType
-    cond: int
+    left: int
+    right: int
     true_val: int
     false_val: int
+    type: Type
 
     def print(self, indent_size: int, depth: int) -> None:
-        pass
+        print(" " * indent_size * depth,
+              f"%{self.version} = {type_to_ir_string(self.type)} cmov ")
 
 @dataclass
 class IRFuncOp(IRStatement):
@@ -215,6 +241,34 @@ class IRBuilder(ast.NodeVisitor):
     def emit(self, statement: IRStatement) -> None:
         self._current_block.statements.append(statement)
 
+    # Helpers
+    
+    def _cast_types(self, version_left: int, version_right: int) -> Tuple[int, int, Type]:
+        left_type = self._ir.get_version_type(version_left)
+        right_type = self._ir.get_version_type(version_right)
+
+        final_type = left_type
+
+        if left_type != right_type:
+            left_rank = type_rank(left_type)
+            right_rank = type_rank(right_type)
+            
+            if left_rank > 0 and right_rank > 0:
+                if left_rank > right_rank:
+                    cast_version = self._ir.new_version("_cast", left_type)
+                    cast_stmt = IRCastOp(cast_version, version_right, right_type, left_type)
+                    self.emit(cast_stmt)
+                    version_right = cast_version
+                elif right_rank > left_rank:
+                    cast_version = self._ir.new_version("_cast", right_type)
+                    cast_stmt = IRCastOp(cast_version, version_left, left_type, right_type)
+                    self.emit(cast_stmt)
+                    version_left = cast_version
+                    final_type = right_type
+            # TODO: If types are incompatible for casting, error
+
+        return version_left, version_right, final_type
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         func_symbol = self._symtable.resolve_symbol(node.name)
         
@@ -246,7 +300,14 @@ class IRBuilder(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> int:
         sym = self._symtable.resolve_symbol(node.id)
         
-        return self._ir.new_version(node.id, sym.type if sym is not None else Type.Invalid)
+        version = self._ir.get_version(node.id)
+
+        if version is None:
+            version = self._ir.new_version(node.id, sym.type if sym is not None else Type.Invalid)
+            stmt = IRVariable(version, str(node.id), sym.type if sym is not None else Type.Invalid)
+            self.emit(stmt)
+        
+        return version 
 
     def visit_Constant(self, node: ast.Constant) -> int:
         node_type = pytype_to_type(type(node.value).__name__)
@@ -257,35 +318,51 @@ class IRBuilder(ast.NodeVisitor):
 
         return version
 
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> int:
+        operand = self.visit(node.operand)
+        operand_type = self._ir.get_version_type(operand)
+
+        op = ast_unop_to_unop(node)
+        version = self._ir.new_version("_tmp", operand_type)
+        stmt = IRUnaryOp(version, op, operand)
+        self.emit(stmt)
+
+        return version
+
     def visit_BinOp(self, node: ast.BinOp) -> int:
         left = self.visit(node.left)
         right = self.visit(node.right)
-        left_type = self._ir.get_version_type(left)
-        right_type = self._ir.get_version_type(right)
 
-        final_type = left_type
-        
-        if left_type != right_type:
-            left_rank = type_rank(left_type)
-            right_rank = type_rank(right_type)
-            
-            if left_rank > 0 and right_rank > 0:
-                if left_rank > right_rank:
-                    cast_version = self._ir.new_version("_cast", left_type)
-                    cast_stmt = IRCastOp(cast_version, right, right_type, left_type)
-                    self.emit(cast_stmt)
-                    right = cast_version
-                elif right_rank > left_rank:
-                    cast_version = self._ir.new_version("_cast", right_type)
-                    cast_stmt = IRCastOp(cast_version, left, left_type, right_type)
-                    self.emit(cast_stmt)
-                    left = cast_version
-                    final_type = right_type
-            # TODO: If types are incompatible for casting, error
+        left, right, final_type = self._cast_types(left, right)
         
         op = ast_binop_to_binop(node)
         version = self._ir.new_version("_tmp", final_type)
         stmt = IRBinaryOp(version, op, left, right, final_type)
+        self.emit(stmt)
+        
+        return version
+
+    def visit_IfExp(self, node: ast.IfExp) -> int:
+        true_val = self.visit(node.body)
+        false_val = self.visit(node.orelse)
+
+        # For now, since the test should be a compare as verified when building the symbol table 
+        # and running the semantic analysis, and only one compare op should be present
+        op = ast_compareop_to_compareop(node.test)
+
+        left = self.visit(node.test.left)
+        right = self.visit(node.test.comparators[0])
+
+        left, right, cmp_type = self._cast_types(left, right)
+
+        cmp_version = self._ir.new_version("_tmp", cmp_type)
+        stmt = IRCompareOp(cmp_version, left, right, cmp_type)
+        self.emit(stmt)
+
+        true_val, false_val, mov_type = self._cast_types(true_val, false_val)
+
+        version = self._ir.new_version("_tmp", mov_type)
+        stmt = IRCMovOp(version, op, true_val, false_val, mov_type)
         self.emit(stmt)
         
         return version
