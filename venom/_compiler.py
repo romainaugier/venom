@@ -95,6 +95,8 @@ class _JITCompiler():
                 print(f"Error: cannot deduce return type for function \"{func.__name__}\", aborting jit-compilation")
                 return None
 
+            func_type.return_type = func_return_type
+
             # Back to module scope
             symtable.pop_scope()
 

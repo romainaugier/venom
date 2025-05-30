@@ -7,7 +7,7 @@ from typing import List, Optional, Union, Dict, Any, Tuple
 
 from ._op import *
 from ._type import *
-from ._symtable import SymbolTable
+from ._symtable import SymbolTable, FunctionDef
 
 @dataclass
 class IRStatement():
@@ -63,9 +63,9 @@ class IRFunction():
     blocks: List[IRBlock] = field(default_factory=list)
 
     def print(self, indent_size: int, depth: int) -> None:
-        parameters_str = ', '.join([f"{name}: {type_to_ir_string(type)}" for name, type in self.parameters.items()])
+        parameters_str = ', '.join([f"{name}: {type.ir_repr()}" for name, type in self.parameters.items()])
 
-        print(" " * indent_size * depth, f"FUNCTION {self.name} ({parameters_str}) -> {type_to_ir_string(self.return_type)}")
+        print(" " * indent_size * depth, f"FUNCTION {self.name} ({parameters_str}) -> {self.return_type.ir_repr()}")
 
         for block in self.blocks:
             block.print(indent_size, depth + 1)
@@ -91,7 +91,7 @@ class IRVariable(IRStatement):
     type: Type
 
     def print(self, indent_size: int, depth: int) -> None:
-        print(" " * indent_size * depth, f"%{self.version} = {type_to_ir_string(self.type)} {self.name}")
+        print(" " * indent_size * depth, f"%{self.version} = {self.type.ir_repr()} {self.name}")
 
 @dataclass
 class IRLiteral(IRStatement):
@@ -104,7 +104,7 @@ class IRLiteral(IRStatement):
     value: Any
 
     def print(self, indent_size: int, depth: int) -> None:
-        print(" " * indent_size * depth, f"%{self.version} = {type_to_ir_string(self.type)} {self.name}")
+        print(" " * indent_size * depth, f"%{self.version} = {self.type.ir_repr()} {self.name}")
 
 # IR Ops
 
@@ -117,7 +117,7 @@ class IRCastOp(IRStatement):
 
     def print(self, indent_size: int, depth: int) -> None:
         print(" " * indent_size * depth, 
-              f"%{self.version} = {type_to_ir_string(self.type_to)} cast %{self.operand}")
+              f"%{self.version} = {self.type_to.ir_repr()} cast %{self.operand}")
 
 @dataclass
 class IRUnaryOp(IRStatement):
@@ -138,7 +138,7 @@ class IRBinaryOp(IRStatement):
 
     def print(self, indent_size: int, depth: int) -> None:
         print(" " * indent_size * depth, 
-              f"%{self.version} = {type_to_ir_string(self.type)} {binop_to_string(self.op)} %{self.left} %{self.right}")
+              f"%{self.version} = {self.type.ir_repr()} {binop_to_string(self.op)} %{self.left} %{self.right}")
 
 @dataclass
 class IRCompareOp(IRStatement):
@@ -149,7 +149,7 @@ class IRCompareOp(IRStatement):
 
     def print(self, indent_size: int, depth: int) -> None:
         print(" " * indent_size * depth,
-              f"cmp {type_to_ir_string(self.type)} %{self.left}, %{self.right}")
+              f"cmp {self.type.ir_repr()} %{self.left}, %{self.right}")
 
 @dataclass
 class IRCMovOp(IRStatement):
@@ -161,7 +161,7 @@ class IRCMovOp(IRStatement):
 
     def print(self, indent_size: int, depth: int) -> None:
         print(" " * indent_size * depth,
-              f"%{self.version} = {type_to_ir_string(self.type)} cmov %{self.true_val}, %{self.false_val} {compareop_to_ir_string(self.op)}")
+              f"%{self.version} = {self.type.ir_repr()} cmov %{self.true_val}, %{self.false_val} {compareop_to_ir_string(self.op)}")
 
 @dataclass
 class IRTernaryOp(IRStatement):
@@ -175,7 +175,7 @@ class IRTernaryOp(IRStatement):
 
     def print(self, indent_size: int, depth: int) -> None:
         print(" " * indent_size * depth,
-              f"%{self.version} = {type_to_ir_string(self.type)} cmov ")
+              f"%{self.version} = {self.type.ir_repr()} cmov ")
 
 @dataclass
 class IRFuncOp(IRStatement):
@@ -215,6 +215,14 @@ class IRBuilder(ast.NodeVisitor):
 
         self._classes = list()
         self._current_class = None
+
+        self._has_error = False
+
+    def _error(self, err: str) -> None:
+        self._has_error = True
+
+    def has_error(self) -> bool:
+        return self._has_error
 
     def get_blocks(self) -> List[IRBlock]:
         return self._blocks
@@ -271,31 +279,26 @@ class IRBuilder(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         func_symbol = self._symtable.resolve_symbol(node.name)
-        
-        self._symtable.set_scope(node.name)
 
-        parameters = dict()
+        if not isinstance(func_symbol, FunctionDef):
+            self._error(f"Cannot find function symbol: {node.name}")
+            return
 
-        for arg in node.args.args:
-            sym = self._symtable.resolve_symbol(arg.arg)
+        for name, func_type in func_symbol.specializations.items():
+            self._symtable.set_scope(node.name)
 
-            if sym is not None:
-                parameters[sym.name] = sym.type
+            func = IRFunction(name, func_type.return_type, func_type.args)
+            self._current_function = func
 
-        func = IRFunction(node.name, func_symbol.return_type, parameters)
+            self._functions.append(func)
+            entry_block = self.new_block(f"{node.name}_entry")
 
-        self._current_function = func
+            for stmt in node.body:
+                self.visit(stmt)
 
-        self._functions.append(func)
+            self._current_function = None
 
-        entry_block = self.new_block(f"{node.name}_entry")
-
-        for stmt in node.body:
-            self.visit(stmt)
-
-        self._current_function = None
-
-        self._symtable.pop_scope()
+            self._symtable.pop_scope()
 
     def visit_Name(self, node: ast.Name) -> int:
         sym = self._symtable.resolve_symbol(node.id)
@@ -303,14 +306,14 @@ class IRBuilder(ast.NodeVisitor):
         version = self._ir.get_version(node.id)
 
         if version is None:
-            version = self._ir.new_version(node.id, sym.type if sym is not None else Type.Invalid)
-            stmt = IRVariable(version, str(node.id), sym.type if sym is not None else Type.Invalid)
+            version = self._ir.new_version(node.id, sym.type if sym is not None else PrimitiveType(Primitive.Invalid))
+            stmt = IRVariable(version, str(node.id), sym.type if sym is not None else PrimitiveType(Primitive.Invalid))
             self.emit(stmt)
         
         return version 
 
     def visit_Constant(self, node: ast.Constant) -> int:
-        node_type = pytype_to_type(type(node.value).__name__)
+        node_type = pytype_to_type(type(node.value))
         version = self._ir.new_version("_const", node_type)
 
         stmt = IRLiteral(version, str(node.value), node_type, node.value)
@@ -396,7 +399,7 @@ class IR():
         return self._variables_versions.get(variable_name)
 
     def get_version_type(self, version: int) -> Type:
-        return self._version_types.get(version, Type.Invalid)
+        return self._version_types.get(version, PrimitiveType(Primitive.Invalid))
 
     def build(self, tree: ast.expr) -> bool:
         self._version_counter = 0
