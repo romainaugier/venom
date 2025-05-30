@@ -30,6 +30,17 @@ _primitive_to_ir_string = {
     Primitive.Float32: "f32",
 }
 
+_primitive_to_letter = {
+    Primitive.Void: "v",
+    Primitive.Bool: "b",
+    Primitive.Int64: "z",
+    Primitive.Int32: "i",
+    Primitive.Int16: "s",
+    Primitive.Int8: "c",
+    Primitive.Float64: "d",
+    Primitive.Float32: "f",
+}
+
 _primitive_to_ctypes = {
     Primitive.Void: None,
     Primitive.Bool: ctypes.c_int32,
@@ -59,6 +70,9 @@ class Type():
     def to_ctypes(self) -> Any:
         raise NotImplementedError
 
+    def to_letter(self) -> str:
+        raise NotImplementedError
+
 @dataclass
 class PrimitiveType(Type):
 
@@ -79,6 +93,9 @@ class PrimitiveType(Type):
     def to_ctypes(self) -> Optional[Any]:
         return _primitive_to_ctypes.get(self.type, None)
 
+    def to_letter(self) -> str:
+        return _primitive_to_letter.get(self.type, "?")
+
 @dataclass
 class ArrayType(Type):
 
@@ -97,6 +114,9 @@ class ArrayType(Type):
             return f"{self.element_type.ir_repr()}*"
         return f"{self.element_type.ir_repr()}[{self.size}]"
 
+    def to_letter(self) -> str:
+        return f"l{self.element_type.to_letter()}"
+
 @dataclass
 class PointerType(Type):
 
@@ -110,6 +130,9 @@ class PointerType(Type):
 
     def ir_repr(self) -> str:
         return f"{self.pointee_type.ir_repr()}*"
+
+    def to_letter(self) -> str:
+        return f"p{self.pointee_type.to_letter()}"
 
 @dataclass
 class StructType(Type):
@@ -152,7 +175,7 @@ class FunctionType(Type):
             return f"{self.name}({','.join(f'{t.ir_repr()} {name}' for name, t in self.args.items())}) -> {self.return_type.ir_repr()}"
 
     def mangled_name(self) -> str:
-        sig_hash = hashlib.md5(self.ir_repr().encode()).hexdigest()
+        sig_hash = ''.join(t.to_letter() for t in self.args.values()) + ("v" if self.return_type is None else self.return_type.to_letter())
 
         return f"{self.name}__{sig_hash}"
 
