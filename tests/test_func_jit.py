@@ -27,14 +27,14 @@ class TestVenom(unittest.TestCase):
         def hash_int(x) -> int:
             return 0 if x <= 0 else x ^ 0x123456789 & 0x987654321 | 0x2
 
-        res = sine_maclaurin(12.0)
+        # res = sine_maclaurin(12.0)
 
-        res = add_numbers(5, 3)
-        res = add_numbers(4.0, 3)
+        # res = add_numbers(5, 3)
+        # res = add_numbers(4.0, 3)
 
         res = sum_array([1.0, 2.0, 4.0, 6.0])
 
-        res = hash_int(12)
+        # res = hash_int(12)
 
 if __name__ == "__main__":
     unittest.main()

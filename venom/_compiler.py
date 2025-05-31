@@ -52,7 +52,7 @@ class _JITCompiler():
         return '\n'.join(lines)
 
     def _get_type_signature(self, args: Tuple[Any, ...]) -> str:
-        return str('_'.join(t.beautiful_repr() for t in types_from_function_args(args)))
+        return str('_'.join(t.beautiful_repr() for t in types_from_function_signature(args)))
     
     def jit_func(self, func: Callable, args: Tuple[Any, ...]) -> Optional[_JITFunc]:
         func_source = inspect.getsource(func)
@@ -75,7 +75,7 @@ class _JITCompiler():
                 print(f"Error: cannot compile \"{type(func_node)}\", it is not a function definition")
                 return None
 
-            args = { arg.arg: t for arg, t in zip(func_node.args.args, types_from_function_args(args)) }
+            args = { arg.arg: t for arg, t in zip(func_node.args.args, types_from_function_signature(args)) }
 
             func_type = FunctionType(func_node.name, args, None)
 
@@ -91,7 +91,7 @@ class _JITCompiler():
             if func_return_type is None:
                 print(f"Error: error caught during parse of function \"{func.__name__}\", aborting jit-compilation")
                 return None
-            elif func_return_type == PrimitiveType(Primitive.Invalid):
+            elif func_return_type == TypeInvalid:
                 print(f"Error: cannot deduce return type for function \"{func.__name__}\", aborting jit-compilation")
                 return None
 

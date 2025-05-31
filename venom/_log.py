@@ -12,13 +12,13 @@ def print_generic_error(err: str) -> None:
     """
     print(f"Error: {err}")
 
-def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None) -> None:
+def _print_ast(node: ast.expr, msg: str, source_code: Optional[str] = None) -> None:
     """
-    Print a beautiful error message showing where the error occurred in the AST
+    Print a beautiful message showing where the event occurred in the AST
     
     Args:
         node (ast.expr): The AST node where the error occurred
-        err (str): The error message to display
+        msg (str): The message to display
         source_code (Optional[str]): Source code string. If not provided, no details will be provided in the error message. Defaults to None.
     """
     lineno = getattr(node, "lineno", None)
@@ -26,7 +26,7 @@ def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None)
     end_col_offset = getattr(node, "end_col_offset", None)
     
     if lineno is None:
-        print(f"Error: {err}")
+        print(msg)
         return
     
     lines = list()
@@ -34,11 +34,11 @@ def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None)
     if source_code is not None:
         lines = source_code.splitlines()
     else:
-        print(f"Error: {err} (line {lineno})")
+        print(f"{msg} (line {lineno})")
         return
     
     if lineno > len(lines) or lineno < 1:
-        print(f"Error: {err} (line {lineno})")
+        print(f"{msg} (line {lineno})")
         return
     
     error_line = lines[lineno - 1]
@@ -48,7 +48,7 @@ def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None)
     if col_offset is not None:
         location_info += f", column {col_offset + 1}"
     
-    print(f"Error: {err} ({location_info})")
+    print(f"{msg} ({location_info})")
     print()
     
     line_num_width = len(str(lineno))
@@ -75,3 +75,9 @@ def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None)
         print(" " * prefix_len + "^")
     
     print()
+
+def print_ast_info(node: ast.expr, info: str, source_code: Optional[str] = None) -> None:
+    _print_ast(node, f"Info: {info}", source_code)
+
+def print_ast_error(node: ast.expr, err: str, source_code: Optional[str] = None) -> None:
+    _print_ast(node, f"Error: {err}", source_code)

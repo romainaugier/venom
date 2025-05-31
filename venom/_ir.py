@@ -109,6 +109,17 @@ class IRLiteral(IRStatement):
 # IR Ops
 
 @dataclass
+class IrMemLoadOp(IRStatement):
+    
+    base_ptr: int
+    type: Type
+    offset: int
+
+    def print(self, indent_size: int, depth: int) -> None:
+        print(" " * indent_size * depth,
+              f"%{self.version} = {self.type.ir_repr()} memload %{self.base_ptr}[%{self.offset}]")
+
+@dataclass
 class IRCastOp(IRStatement):
     
     operand: int
@@ -180,11 +191,32 @@ class IRTernaryOp(IRStatement):
 @dataclass
 class IRFuncOp(IRStatement):
 
-    func: int
+    func: FunctionType
     args: List[int]
 
     def print(self, indent_size: int, depth: int) -> None:
-        pass
+        print(" " * indent_size * depth,
+              f"%{self.version} = {self.func.return_type.ir_repr()} call {self.func.mangled_name()}({','.join(f'%{arg}' for arg in self.args)})")
+
+@dataclass
+class IRIncOp(IRStatement):
+    
+    operand: int
+    type: Type
+
+    def print(self, indent_size: int, depth: int) -> None:
+        print(" " * indent_size * depth,
+              f"%{self.operand} = {self.type.ir_repr()} inc %{self.operand}")
+
+@dataclass
+class IRDecOp(IRStatement):
+    
+    operand: int
+    type: Type
+
+    def print(self, indent_size: int, depth: int) -> None:
+        print(" " * indent_size * depth,
+              f"%{self.operand} = {self.type.ir_repr()} dec %{self.operand}")
 
 # IR Terminators
 
@@ -198,6 +230,15 @@ class IRReturn(IRTerminator):
             print(" " * indent_size * depth, "return")
         else:
             print(" " * indent_size * depth, f"return %{self.value}")
+
+@dataclass
+class IRJump(IRTerminator):
+    
+    block: IRBlock
+    comp: CompareOpType
+
+    def print(self, indent_size: int, depth: int) -> None:
+        print(" " * indent_size * depth, f"jump {self.block.name} {compareop_to_ir_string(self.comp)}")
 
 # IR AST Visitor
 
@@ -291,7 +332,7 @@ class IRBuilder(ast.NodeVisitor):
             self._current_function = func
 
             self._functions.append(func)
-            entry_block = self.new_block(f"{node.name}_entry")
+            entry_block = self.new_block(f"body{node.lineno}")
 
             for stmt in node.body:
                 self.visit(stmt)
@@ -306,8 +347,8 @@ class IRBuilder(ast.NodeVisitor):
         version = self._ir.get_version(node.id)
 
         if version is None:
-            version = self._ir.new_version(node.id, sym.type if sym is not None else PrimitiveType(Primitive.Invalid))
-            stmt = IRVariable(version, str(node.id), sym.type if sym is not None else PrimitiveType(Primitive.Invalid))
+            version = self._ir.new_version(node.id, sym.type if sym is not None else TypeInvalid)
+            stmt = IRVariable(version, str(node.id), sym.type if sym is not None else TypeInvalid)
             self.emit(stmt)
         
         return version 
@@ -345,6 +386,19 @@ class IRBuilder(ast.NodeVisitor):
         
         return version
 
+    def visit_AugAssign(self, node: ast.AugAssign) -> int:
+        target = self.visit(node.target)
+        value = self.visit(node.value)
+
+        target, value, final_type = self._cast_types(target, value)
+
+        op = ast_binop_to_binop(node)
+
+        stmt = IRBinaryOp(target, op, target, value, final_type)
+        self.emit(stmt)
+
+        return target
+
     def visit_IfExp(self, node: ast.IfExp) -> int:
         true_val = self.visit(node.body)
         false_val = self.visit(node.orelse)
@@ -374,6 +428,71 @@ class IRBuilder(ast.NodeVisitor):
         value = self.visit(node.value)
         self._current_block.terminator = IRReturn(value)
 
+    def visit_Call(self, node: ast.Call) -> int:
+        if not isinstance(node.func, ast.Name):
+            return None
+
+        arg_versions = list()
+
+        for arg in node.args:
+            arg_versions.append(self.visit(arg))            
+
+        arg_types = [self._ir.get_version_type(version) for version in arg_versions]
+
+        func_specializations = self._ir._symtable.get_builtin_specializations().get(node.func.id, list())
+
+        func_specialization = None
+
+        for specialization in func_specializations:
+            if all(arg_type == spe_arg_type for arg_type, spe_arg_type in zip(arg_types, specialization.args.values())):
+                func_specialization = specialization
+                break
+
+        if func_specialization is None:
+            return None
+
+        version = self._ir.new_version("_tmp", func_specialization.return_type)
+        stmt = IRFuncOp(version, func_specialization, arg_versions)
+        self.emit(stmt)
+
+        return version
+
+    def visit_Subscript(self, node: ast.Subscript) -> int:
+        value = self.visit(node.value)
+        value_type = self._ir.get_version_type(value)
+        offset = self.visit(node.slice)
+
+        if not isinstance(value_type, ArrayType):
+            return
+
+        version = self._ir.new_version("_tmp", value_type.element_type)
+        stmt = IrMemLoadOp(version, value, value_type.element_type, offset)
+        self.emit(stmt)
+
+        return version
+
+    def visit_For(self, node: ast.For) -> None:
+        if isinstance(node.iter, ast.Call):
+            loop_target = self.visit(node.target)
+            loop_iter = self.visit(node.iter)
+
+            loop_target, loop_iter, cmp_type = self._cast_types(loop_target, loop_iter)
+
+            for_block = self.new_block(f"for{node.lineno}")
+
+            for stmt_body in node.body:
+                self.visit(stmt_body)
+
+            stmt = IRIncOp(None, loop_target, self._ir.get_version_type(loop_target))
+            self.emit(stmt)
+
+            cmp_version = self._ir.new_version("_tmp", TypeBool)
+            stmt = IRCompareOp(cmp_version, loop_target, loop_iter, cmp_type)
+            self.emit(stmt)
+            for_block.terminator = IRJump(for_block, CompareOpType.Lt)
+
+            self.new_block(f"body{stmt_body.lineno + 1}")
+
 # IR 
 
 class IR():
@@ -399,7 +518,7 @@ class IR():
         return self._variables_versions.get(variable_name)
 
     def get_version_type(self, version: int) -> Type:
-        return self._version_types.get(version, PrimitiveType(Primitive.Invalid))
+        return self._version_types.get(version, TypeInvalid)
 
     def build(self, tree: ast.expr) -> bool:
         self._version_counter = 0

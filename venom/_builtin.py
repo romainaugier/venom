@@ -1,64 +1,43 @@
-from typing import Dict, Set, Union, Optional, Any
-from dataclasses import dataclass
+from typing import Dict, Optional
 
 from ._type import *
-
-@dataclass 
-class Builtin():
-    """
-    Base class for all builtin stuff, like modules, functions, variables
-    """
-    
-    name: str
-
-@dataclass
-class BuiltinConstant(Builtin):
-    """
-    Builtin constants are holding constant values
-    """
-    
-    value: Any
-    type: Type
-
-@dataclass
-class BuiltinFunction(Builtin):
-    """
-    Builtin function
-    """
-
-    func: FunctionType
-
-@dataclass
-class BuiltinModule(Builtin):
-    """
-    Builtin module holding classes, functions, constants, like math, sys...
-    """
-    
-    constants: Dict[str, BuiltinConstant]
-    functions: Dict[str, BuiltinFunction]
+from ._symbols import FunctionBuiltin
 
 _builtins = {
-    "range": BuiltinFunction("range", 
+    "print": FunctionBuiltin("print",
+                             FunctionType("print",
+                                          { "...": Type },
+                                          TypeVoid)),
+    "range": FunctionBuiltin("range", 
                              FunctionType("range",
                                           { "x": Type },
-                                          PrimitiveType(Primitive.Int64))),
-    "len": BuiltinFunction("len", 
+                                          TypeInt64)),
+    "len": FunctionBuiltin("len", 
                            FunctionType("len",
                                         { "x": Type },
-                                        PrimitiveType(Primitive.Int64))),
-    "float": BuiltinFunction("float", FunctionType("float",
+                                        TypeInt64)),
+    "float": FunctionBuiltin("float", FunctionType("float",
                                                    { "x": Type },
-                                                   PrimitiveType(Primitive.Float64))),
-    "int": BuiltinFunction("int", FunctionType("int",
+                                                   TypeFloat64)),
+    "int": FunctionBuiltin("int", FunctionType("int",
                                                { "x": Type },
-                                               PrimitiveType(Primitive.Float64))),
-    "bool": BuiltinFunction("bool", FunctionType("bool",
+                                               TypeFloat64)),
+    "bool": FunctionBuiltin("bool", FunctionType("bool",
                                                  { "x": Type },
-                                                 PrimitiveType(Primitive.Bool))),
+                                                 TypeBool)),
 }
 
-def is_builtin_function(name: str) -> bool:
-    return name in _builtins
+def get_builtin_functions() -> Dict[str, FunctionBuiltin]:
+    return _builtins
 
-def get_builtin_function(name: str) -> Optional[BuiltinFunction]:
-    return _builtins.get(name)
+# Handle each function carefully 
+
+def get_builtin_function_specialization(name: str, args: List[Type]) -> Optional[FunctionType]:
+    if not name in _builtins:
+        return None
+
+    builtin = _builtins[name]
+
+    args_mapping = { argname: argtype for argname, argtype in zip(builtin.type.args.keys(), args) }
+
+    return FunctionType(name, args_mapping, builtin.type.return_type)

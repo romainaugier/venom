@@ -3,10 +3,10 @@ import ctypes
 import hashlib
 import re
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Tuple, Union, Optional, Dict, List, get_args, get_origin
 
-from ._error import print_generic_error
+from ._log import print_generic_error
 
 class Primitive(enum.IntEnum):
     Invalid = -1
@@ -100,7 +100,7 @@ class PrimitiveType(Type):
 class ArrayType(Type):
 
     element_type: Type
-    size: Optional[int]  # None means dynamic size
+    size: Optional[int] = field(default=None) # None means dynamic size
 
     def __repr__(self) -> str:
         return self.beautiful_repr()
@@ -112,6 +112,7 @@ class ArrayType(Type):
     def ir_repr(self) -> str:
         if self.size is None:
             return f"{self.element_type.ir_repr()}*"
+
         return f"{self.element_type.ir_repr()}[{self.size}]"
 
     def to_letter(self) -> str:
@@ -179,10 +180,37 @@ class FunctionType(Type):
 
         return f"{self.name}__{sig_hash}"
 
+# Aliases
+
+TypeInvalid = PrimitiveType(Primitive.Invalid)
+TypeVoid = PrimitiveType(Primitive.Void)
+TypeBool = PrimitiveType(Primitive.Bool)
+TypeInt64 = PrimitiveType(Primitive.Int64)
+TypeInt32 = PrimitiveType(Primitive.Int32)
+TypeInt16 = PrimitiveType(Primitive.Int16)
+TypeInt8 = PrimitiveType(Primitive.Int8)
+TypeFloat64 = PrimitiveType(Primitive.Float64)
+TypeFloat32 = PrimitiveType(Primitive.Float32)
+
+TypeString = ArrayType(Primitive.Int16)
+TypeBytes = ArrayType(Primitive.Int8)
+
 # Utils
 
+def types_from_function_signature(args: Tuple[Any, ...]) -> Optional[List[Type]]:
+    types = list()
+
+    for arg in args:
+        if isinstance(arg, list):
+            elem_type = pytype_to_type(type(arg[0]))
+            types.append(ArrayType(elem_type))
+        else:
+            types.append(pytype_to_type(type(arg)))
+
+    return types
+
 def types_from_function_args(args: Tuple[Any, ...]) -> Optional[List[Type]]:
-    types = []
+    types = list()
 
     for arg in args:
         t = pytype_to_type(type(arg))
@@ -256,7 +284,6 @@ def pytype_to_type(py_type: Any) -> Optional[Type]:
 
     # List[T] to array
     if origin is list or origin is List:
-
         if not args:
             print_generic_error("List[T] must specify an element type")
             return None
@@ -267,22 +294,22 @@ def pytype_to_type(py_type: Any) -> Optional[Type]:
 
     # Primitive Types
     if py_type is int:
-        return PrimitiveType(Primitive.Int64)
+        return TypeInt64
 
     if py_type is float:
-        return PrimitiveType(Primitive.Float64)
+        return TypeFloat64
 
     if py_type is bool:
-        return PrimitiveType(Primitive.Bool)
+        return TypeBool
 
     if py_type is bytes:
-        return PointerType(PrimitiveType(Primitive.Int8))
+        return TypeBytes
 
     if py_type is str:
-        return PointerType(PrimitiveType(Primitive.Int16))
+        return TypeString
 
     if py_type is type(None):
-        return PrimitiveType(Primitive.Void)
+        return TypeVoid
 
     print_generic_error(f"Unsupported Python type: {py_type}")
 
